@@ -41,8 +41,8 @@ const Header = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm">
-              Sign In
+            <Button variant="ghost" size="sm" asChild>
+              <a href="/auth">Sign In</a>
             </Button>
             <Button variant="accent" size="sm">
               Book Now
@@ -74,8 +74,8 @@ const Header = () => {
                 </a>
               ))}
               <div className="flex flex-col gap-2 px-4 pt-4 border-t border-border mt-2">
-                <Button variant="outline" className="w-full">
-                  Sign In
+                <Button variant="outline" className="w-full" asChild>
+                  <a href="/auth">Sign In</a>
                 </Button>
                 <Button variant="accent" className="w-full">
                   Book Now
