@@ -1,8 +1,13 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MapPin, Calendar, ArrowRight, Shield, Clock, Truck } from "lucide-react";
+import { Calendar, ArrowRight, Shield, Clock, Truck } from "lucide-react";
 import heroImage from "@/assets/hero-luggage.jpg";
+import LocationInput from "./LocationInput";
 
 const Hero = () => {
+  const [pickupLocation, setPickupLocation] = useState("");
+  const [deliveryLocation, setDeliveryLocation] = useState("");
+
   return (
     <section className="relative min-h-screen pt-20 overflow-hidden">
       {/* Background */}
@@ -78,30 +83,21 @@ const Hero = () => {
               
               <div className="space-y-4">
                 {/* Pickup Location */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Pickup Location</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="text"
-                      placeholder="Enter pickup address"
-                      className="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
-                    />
-                  </div>
-                </div>
+                <LocationInput
+                  label="Pickup Location"
+                  placeholder="Enter pickup address"
+                  value={pickupLocation}
+                  onChange={setPickupLocation}
+                />
 
                 {/* Drop-off Location */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Delivery Location (Optional)</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="text"
-                      placeholder="Where should we deliver?"
-                      className="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
-                    />
-                  </div>
-                </div>
+                <LocationInput
+                  label="Delivery Location"
+                  placeholder="Where should we deliver?"
+                  value={deliveryLocation}
+                  onChange={setDeliveryLocation}
+                  optional
+                />
 
                 {/* Date Selection */}
                 <div className="grid grid-cols-2 gap-4">
