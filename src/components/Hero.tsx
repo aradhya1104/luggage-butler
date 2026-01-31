@@ -1,12 +1,28 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Calendar, ArrowRight, Shield, Clock, Truck } from "lucide-react";
 import heroImage from "@/assets/hero-luggage.jpg";
 import LocationInput from "./LocationInput";
 
 const Hero = () => {
+  const navigate = useNavigate();
   const [pickupLocation, setPickupLocation] = useState("");
   const [deliveryLocation, setDeliveryLocation] = useState("");
+  const [dropOffDate, setDropOffDate] = useState("");
+  const [pickupDate, setPickupDate] = useState("");
+  const [numberOfBags, setNumberOfBags] = useState("1");
+
+  const handleGetQuote = () => {
+    const params = new URLSearchParams({
+      pickup: pickupLocation,
+      delivery: deliveryLocation,
+      dropOff: dropOffDate,
+      pickupDate: pickupDate,
+      bags: numberOfBags.replace(/\D/g, "") || "1",
+    });
+    navigate(`/booking?${params.toString()}`);
+  };
 
   return (
     <section className="relative min-h-screen pt-20 overflow-hidden">
@@ -107,6 +123,8 @@ const Hero = () => {
                       <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <input
                         type="date"
+                        value={dropOffDate}
+                        onChange={(e) => setDropOffDate(e.target.value)}
                         className="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
                       />
                     </div>
@@ -117,6 +135,8 @@ const Hero = () => {
                       <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <input
                         type="date"
+                        value={pickupDate}
+                        onChange={(e) => setPickupDate(e.target.value)}
                         className="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
                       />
                     </div>
@@ -126,22 +146,26 @@ const Hero = () => {
                 {/* Number of Bags */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Number of Bags</label>
-                  <select className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all">
-                    <option>1 Bag</option>
-                    <option>2 Bags</option>
-                    <option>3 Bags</option>
-                    <option>4+ Bags</option>
+                  <select 
+                    value={numberOfBags}
+                    onChange={(e) => setNumberOfBags(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                  >
+                    <option value="1">1 Bag - ₹300</option>
+                    <option value="2">2 Bags - ₹500</option>
+                    <option value="3">3 Bags - ₹800</option>
+                    <option value="4">4+ Bags - ₹1,200</option>
                   </select>
                 </div>
 
                 {/* Submit Button */}
-                <Button variant="hero" size="lg" className="w-full mt-4">
+                <Button variant="hero" size="lg" className="w-full mt-4" onClick={handleGetQuote}>
                   Get Quote
                   <ArrowRight className="w-5 h-5" />
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
-                  Starting from $5/day per bag
+                  Starting from ₹300 per booking
                 </p>
               </div>
             </div>
