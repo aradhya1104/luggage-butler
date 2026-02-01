@@ -5,18 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Luggage, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if already logged in as admin
     const checkAdminSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -38,6 +41,7 @@ const AdminLogin = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setMessage(null);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -48,7 +52,6 @@ const AdminLogin = () => {
       if (error) throw error;
 
       if (data.user) {
-        // Check if user has admin role
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('role')
@@ -83,6 +86,51 @@ const AdminLogin = () => {
     }
   };
 
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const redirectUrl = `${window.location.origin}/admin`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: fullName,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        // Add admin role for the new user
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: data.user.id, role: 'admin' });
+
+        if (roleError) {
+          console.error("Failed to assign admin role:", roleError);
+        }
+
+        setMessage("Admin account created! Check your email for confirmation link, then login.");
+        setIsSignUp(false);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Sign Up Failed",
+        description: error.message || "Could not create admin account",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -90,13 +138,30 @@ const AdminLogin = () => {
           <div className="mx-auto w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-4">
             <Shield className="w-6 h-6 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl">Admin Login</CardTitle>
+          <CardTitle className="text-2xl">
+            {isSignUp ? "Admin Sign Up" : "Admin Login"}
+          </CardTitle>
           <CardDescription>
-            Sign in to access the admin dashboard
+            {isSignUp
+              ? "Create a new admin account"
+              : "Sign in to access the admin dashboard"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={isSignUp ? handleSignUp : handleLogin} className="space-y-4">
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Admin Name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -119,15 +184,40 @@ const AdminLogin = () => {
                 required
               />
             </div>
+
+            {message && (
+              <Alert>
+                <AlertDescription className="text-primary">{message}</AlertDescription>
+              </Alert>
+            )}
+
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
+              {loading
+                ? isSignUp ? "Creating..." : "Signing in..."
+                : isSignUp ? "Create Admin Account" : "Sign In"}
             </Button>
           </form>
-          <div className="mt-4 text-center">
-            <a href="/" className="text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-1">
-              <Luggage className="w-4 h-4" />
-              Back to Luggo
-            </a>
+
+          <div className="mt-4 text-center space-y-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setMessage(null);
+              }}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {isSignUp
+                ? "Already have an admin account? Sign in"
+                : "Need an admin account? Sign up"}
+            </button>
+
+            <div className="pt-2">
+              <a href="/" className="text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-1">
+                <Luggage className="w-4 h-4" />
+                Back to Luggo
+              </a>
+            </div>
           </div>
         </CardContent>
       </Card>

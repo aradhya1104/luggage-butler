@@ -301,7 +301,7 @@ const Auth = () => {
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center space-y-3">
               <button
                 type="button"
                 onClick={() => {
@@ -315,6 +315,15 @@ const Auth = () => {
                   ? "Don't have an account? Sign up"
                   : "Already have an account? Sign in"}
               </button>
+              
+              <Separator />
+              
+              <a
+                href="/admin"
+                className="block text-sm text-primary hover:underline"
+              >
+                Login as Admin
+              </a>
             </div>
           </CardContent>
         </Card>
