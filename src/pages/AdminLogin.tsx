@@ -101,6 +101,7 @@ const AdminLogin = () => {
           emailRedirectTo: redirectUrl,
           data: {
             full_name: fullName,
+            admin_signup: 'true', // This flag triggers the admin role assignment via database trigger
           },
         },
       });
@@ -108,15 +109,6 @@ const AdminLogin = () => {
       if (error) throw error;
 
       if (data.user) {
-        // Add admin role for the new user
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({ user_id: data.user.id, role: 'admin' });
-
-        if (roleError) {
-          console.error("Failed to assign admin role:", roleError);
-        }
-
         setMessage("Admin account created! Check your email for confirmation link, then login.");
         setIsSignUp(false);
       }
