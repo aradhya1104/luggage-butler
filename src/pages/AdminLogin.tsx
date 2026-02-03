@@ -125,7 +125,7 @@ const AdminLogin = () => {
           emailRedirectTo: redirectUrl,
           data: {
             full_name: fullName,
-            admin_signup: 'true', // This flag triggers the admin role assignment via database trigger
+            admin_signup: 'true', // This flag creates a pending admin request
           },
         },
       });
@@ -133,7 +133,7 @@ const AdminLogin = () => {
       if (error) throw error;
 
       if (data.user) {
-        setMessage("Admin account created! Check your email for confirmation link, then login.");
+        setMessage("Request submitted! Please check your email for confirmation, then wait for the super admin to approve your access.");
         setIsSignUp(false);
       }
     } catch (error: any) {
