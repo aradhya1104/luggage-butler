@@ -151,7 +151,7 @@ const Hero = () => {
                     onChange={(e) => setNumberOfBags(e.target.value)}
                     className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
                   >
-                    <option value="1">1 Bag - ₹300</option>
+                  <option value="1">1 Bag - ₹2</option>
                     <option value="2">2 Bags - ₹500</option>
                     <option value="3">3 Bags - ₹800</option>
                     <option value="4">4+ Bags - ₹1,200</option>
@@ -165,7 +165,7 @@ const Hero = () => {
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
-                  Starting from ₹300 per booking
+                  Starting from ₹2 per booking
                 </p>
               </div>
             </div>
