@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +9,22 @@ const corsHeaders = {
 
 const RAZORPAY_KEY_ID = Deno.env.get('RAZORPAY_KEY_ID')!;
 const RAZORPAY_KEY_SECRET = Deno.env.get('RAZORPAY_KEY_SECRET')!;
+
+// Input validation schemas
+const createOrderSchema = z.object({
+  pickupLocation: z.string().min(1, "Pickup location is required").max(500, "Location too long"),
+  deliveryLocation: z.string().max(500, "Location too long").optional().nullable(),
+  dropOffDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
+  pickupDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
+  numberOfBags: z.number().int("Number of bags must be an integer").min(1, "At least 1 bag required").max(10, "Maximum 10 bags allowed"),
+});
+
+const verifyPaymentSchema = z.object({
+  razorpayOrderId: z.string().min(1, "Order ID is required"),
+  razorpayPaymentId: z.string().min(1, "Payment ID is required"),
+  razorpaySignature: z.string().min(1, "Signature is required"),
+  bookingId: z.string().uuid("Invalid booking ID"),
+});
 
 // Calculate price based on number of bags
 function calculatePrice(bags: number): number {
@@ -25,6 +42,26 @@ function generateTrackingId(): string {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
+}
+
+// Validate dates are logical (dropOff <= pickup and both not in distant past)
+function validateDates(dropOffDate: string, pickupDate: string): { valid: boolean; error?: string } {
+  const dropOff = new Date(dropOffDate);
+  const pickup = new Date(pickupDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Allow dates from yesterday (to handle timezone differences)
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  if (dropOff < yesterday) {
+    return { valid: false, error: "Drop-off date cannot be in the past" };
+  }
+  if (pickup < dropOff) {
+    return { valid: false, error: "Pickup date must be on or after drop-off date" };
+  }
+  return { valid: true };
 }
 
 serve(async (req) => {
@@ -53,10 +90,30 @@ serve(async (req) => {
       );
     }
 
-    const { action, ...data } = await req.json();
+    const body = await req.json();
+    const { action, ...data } = body;
 
     if (action === 'create-order') {
-      const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags } = data;
+      // Validate input
+      const parseResult = createOrderSchema.safeParse(data);
+      if (!parseResult.success) {
+        console.error('Validation error:', parseResult.error.errors);
+        return new Response(
+          JSON.stringify({ error: 'Invalid input', details: parseResult.error.errors.map(e => e.message).join(', ') }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags } = parseResult.data;
+      
+      // Validate date logic
+      const dateValidation = validateDates(dropOffDate, pickupDate);
+      if (!dateValidation.valid) {
+        return new Response(
+          JSON.stringify({ error: dateValidation.error }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       
       const amount = calculatePrice(numberOfBags);
       const trackingId = generateTrackingId();
@@ -142,7 +199,17 @@ serve(async (req) => {
     }
 
     if (action === 'verify-payment') {
-      const { razorpayOrderId, razorpayPaymentId, razorpaySignature, bookingId } = data;
+      // Validate input
+      const parseResult = verifyPaymentSchema.safeParse(data);
+      if (!parseResult.success) {
+        console.error('Validation error:', parseResult.error.errors);
+        return new Response(
+          JSON.stringify({ error: 'Invalid input', details: parseResult.error.errors.map(e => e.message).join(', ') }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      const { razorpayOrderId, razorpayPaymentId, razorpaySignature, bookingId } = parseResult.data;
 
       // Verify signature
       const crypto = await import("https://deno.land/std@0.168.0/crypto/mod.ts");
