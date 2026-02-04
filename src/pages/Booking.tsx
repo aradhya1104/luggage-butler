@@ -14,14 +14,14 @@ declare global {
 }
 
 const PRICING: Record<number, number> = {
-  1: 2,
+  1: 0,
   2: 500,
   3: 800,
 };
 
 function getPrice(bags: number): number {
   if (bags >= 4) return 1200;
-  return PRICING[bags] || 2;
+  return PRICING[bags] || 0;
 }
 
 const Booking = () => {
