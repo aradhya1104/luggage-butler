@@ -28,7 +28,7 @@ const verifyPaymentSchema = z.object({
 
 // Calculate price based on number of bags
 function calculatePrice(bags: number): number {
-  if (bags <= 1) return 0;
+  if (bags <= 1) return 300;
   if (bags === 2) return 500;
   if (bags === 3) return 800;
   return 1200; // 4 or more bags
