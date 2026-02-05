@@ -1,6 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { z } from "https://esm.sh/zod@3.22.4";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@3.22.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,7 +63,7 @@ function validateDates(dropOffDate: string, pickupDate: string): { valid: boolea
   return { valid: true };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -211,10 +210,9 @@ serve(async (req) => {
       
       const { razorpayOrderId, razorpayPaymentId, razorpaySignature, bookingId } = parseResult.data;
 
-      // Verify signature
-      const crypto = await import("https://deno.land/std@0.168.0/crypto/mod.ts");
+      // Verify signature using Web Crypto API
       const encoder = new TextEncoder();
-      const key = await crypto.crypto.subtle.importKey(
+      const key = await crypto.subtle.importKey(
         "raw",
         encoder.encode(RAZORPAY_KEY_SECRET),
         { name: "HMAC", hash: "SHA-256" },
@@ -223,7 +221,7 @@ serve(async (req) => {
       );
       
       const message = `${razorpayOrderId}|${razorpayPaymentId}`;
-      const signature = await crypto.crypto.subtle.sign(
+      const signature = await crypto.subtle.sign(
         "HMAC",
         key,
         encoder.encode(message)
