@@ -2,10 +2,16 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, MapPin, Calendar, Briefcase, CreditCard, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Briefcase, CreditCard, Loader2, User, Phone, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
+
+interface UserProfile {
+  full_name: string | null;
+  phone: string | null;
+  email: string;
+}
 
 declare global {
   interface Window {
@@ -32,6 +38,7 @@ const Booking = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const pickupLocation = searchParams.get("pickup") || "";
   const deliveryLocation = searchParams.get("delivery") || "";
@@ -46,11 +53,41 @@ const Booking = () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
       setCheckingAuth(false);
+      
+      if (session?.user) {
+        // Fetch user profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, phone')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        setUserProfile({
+          full_name: profile?.full_name || null,
+          phone: profile?.phone || null,
+          email: session.user.email || '',
+        });
+      }
     };
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setIsAuthenticated(!!session);
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, phone')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        setUserProfile({
+          full_name: profile?.full_name || null,
+          phone: profile?.phone || null,
+          email: session.user.email || '',
+        });
+      } else {
+        setUserProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -191,6 +228,41 @@ const Booking = () => {
         <div className="max-w-2xl mx-auto">
           <h1 className="text-3xl font-bold text-foreground mb-2">Booking Summary</h1>
           <p className="text-muted-foreground mb-8">Review your booking details before payment</p>
+
+          {/* Customer Details Card */}
+          {userProfile && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Customer Details</CardTitle>
+                <CardDescription>Your contact information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <User className="w-5 h-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Full Name</p>
+                    <p className="font-medium">{userProfile.full_name || "Not provided"}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Phone className="w-5 h-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Phone Number</p>
+                    <p className="font-medium">{userProfile.phone || "Not provided"}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Mail className="w-5 h-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="font-medium">{userProfile.email}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="mb-6">
             <CardHeader>
