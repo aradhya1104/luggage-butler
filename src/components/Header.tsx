@@ -1,14 +1,38 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Luggage } from "lucide-react";
+import { Menu, X, Luggage, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
 
   const navLinks = [
     { name: "How It Works", href: "#how-it-works" },
     { name: "Services", href: "#services" },
-    { name: "Pricing", href: "#pricing" },
+    { name: "Tracking", href: "#tracking" },
     { name: "Contact", href: "#contact" },
   ];
 
@@ -41,12 +65,26 @@ const Header = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <a href="/auth">Sign In</a>
-            </Button>
-            <Button variant="accent" size="sm">
-              Book Now
-            </Button>
+            {user ? (
+              <>
+                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
+                <Button variant="accent" size="sm" asChild>
+                  <a href="/booking">Book Now</a>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <a href="/auth">Sign In</a>
+                </Button>
+                <Button variant="accent" size="sm" asChild>
+                  <a href="/booking">Book Now</a>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -74,12 +112,26 @@ const Header = () => {
                 </a>
               ))}
               <div className="flex flex-col gap-2 px-4 pt-4 border-t border-border mt-2">
-                <Button variant="outline" className="w-full" asChild>
-                  <a href="/auth">Sign In</a>
-                </Button>
-                <Button variant="accent" className="w-full">
-                  Book Now
-                </Button>
+                {user ? (
+                  <>
+                    <Button variant="outline" className="w-full" onClick={handleSignOut}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Button>
+                    <Button variant="accent" className="w-full" asChild>
+                      <a href="/booking">Book Now</a>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" className="w-full" asChild>
+                      <a href="/auth">Sign In</a>
+                    </Button>
+                    <Button variant="accent" className="w-full" asChild>
+                      <a href="/booking">Book Now</a>
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </div>
