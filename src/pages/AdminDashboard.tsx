@@ -36,6 +36,8 @@ interface Booking {
   tracking_id: string | null;
   created_at: string;
   user_id: string;
+  customer_name?: string | null;
+  customer_phone?: string | null;
 }
 
 interface AdminRequest {
@@ -115,7 +117,7 @@ const AdminDashboard = () => {
 
   const fetchBookings = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data: bookingsData, error } = await supabase
       .from('bookings')
       .select('*')
       .order('created_at', { ascending: false });
@@ -126,9 +128,26 @@ const AdminDashboard = () => {
         description: "Failed to fetch bookings",
         variant: "destructive",
       });
-    } else {
-      setBookings(data || []);
+      setLoading(false);
+      return;
     }
+
+    // Fetch profiles for all user_ids
+    const userIds = [...new Set(bookingsData?.map(b => b.user_id) || [])];
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, phone')
+      .in('user_id', userIds);
+
+    const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
+
+    const enrichedBookings = bookingsData?.map(booking => ({
+      ...booking,
+      customer_name: profilesMap.get(booking.user_id)?.full_name || null,
+      customer_phone: profilesMap.get(booking.user_id)?.phone || null,
+    })) || [];
+
+    setBookings(enrichedBookings);
     setLoading(false);
   };
 
@@ -352,6 +371,7 @@ const AdminDashboard = () => {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Tracking ID</TableHead>
+                            <TableHead>Customer</TableHead>
                             <TableHead>Pickup</TableHead>
                             <TableHead>Delivery</TableHead>
                             <TableHead>Dates</TableHead>
@@ -367,6 +387,14 @@ const AdminDashboard = () => {
                               <TableCell className="font-mono text-sm">
                                 {booking.tracking_id || 'N/A'}
                               </TableCell>
+                            <TableCell className="min-w-[150px]">
+                              <div className="text-sm font-medium">
+                                {booking.customer_name || 'N/A'}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {booking.customer_phone || 'No phone'}
+                              </div>
+                            </TableCell>
                               <TableCell className="max-w-[150px] truncate">
                                 {booking.pickup_location}
                               </TableCell>
@@ -552,6 +580,7 @@ const AdminDashboard = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Tracking ID</TableHead>
+                          <TableHead>Customer</TableHead>
                           <TableHead>Pickup</TableHead>
                           <TableHead>Delivery</TableHead>
                           <TableHead>Dates</TableHead>
@@ -567,6 +596,14 @@ const AdminDashboard = () => {
                             <TableCell className="font-mono text-sm">
                               {booking.tracking_id || 'N/A'}
                             </TableCell>
+                          <TableCell className="min-w-[150px]">
+                            <div className="text-sm font-medium">
+                              {booking.customer_name || 'N/A'}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {booking.customer_phone || 'No phone'}
+                            </div>
+                          </TableCell>
                             <TableCell className="max-w-[150px] truncate">
                               {booking.pickup_location}
                             </TableCell>
