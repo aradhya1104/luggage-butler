@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ArrowLeft, MapPin, Calendar, Briefcase, CreditCard, Loader2, User, Phone, Mail } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
@@ -39,6 +41,8 @@ const Booking = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
 
   const pickupLocation = searchParams.get("pickup") || "";
   const deliveryLocation = searchParams.get("delivery") || "";
@@ -48,6 +52,8 @@ const Booking = () => {
 
   const amount = getPrice(numberOfBags);
 
+  const hasPhone = !!(userProfile?.phone);
+
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -55,7 +61,6 @@ const Booking = () => {
       setCheckingAuth(false);
       
       if (session?.user) {
-        // Fetch user profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name, phone')
@@ -104,6 +109,72 @@ const Booking = () => {
     };
   }, []);
 
+  const handleSavePhone = async () => {
+    const trimmed = phoneInput.trim();
+    if (!trimmed || trimmed.length < 10) {
+      toast({
+        title: "Invalid Phone",
+        description: "Please enter a valid phone number (at least 10 digits)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingPhone(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      setSavingPhone(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ phone: trimmed })
+      .eq('user_id', session.user.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save phone number",
+        variant: "destructive",
+      });
+    } else {
+      setUserProfile(prev => prev ? { ...prev, phone: trimmed } : prev);
+      toast({
+        title: "Saved",
+        description: "Phone number saved successfully",
+      });
+    }
+    setSavingPhone(false);
+  };
+
+  const openWhatsAppConfirmation = (trackingId: string) => {
+    const phone = userProfile?.phone || phoneInput.trim();
+    if (!phone) return;
+
+    // Clean phone number - remove spaces, dashes, and add country code if needed
+    let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    if (!cleanPhone.startsWith('+')) {
+      cleanPhone = '91' + cleanPhone; // Default to India country code
+    } else {
+      cleanPhone = cleanPhone.substring(1); // Remove the +
+    }
+
+    const message = encodeURIComponent(
+      `✅ *Luggo Booking Confirmed!*\n\n` +
+      `📦 Tracking ID: ${trackingId}\n` +
+      `📍 Pickup: ${pickupLocation}\n` +
+      `${deliveryLocation ? `🏠 Delivery: ${deliveryLocation}\n` : ''}` +
+      `📅 Drop-off: ${dropOffDate}\n` +
+      `📅 Pickup: ${pickupDate}\n` +
+      `🧳 Bags: ${numberOfBags}\n` +
+      `💰 Amount: ₹${amount}\n\n` +
+      `Track your luggage at: ${window.location.origin}/track?id=${trackingId}`
+    );
+
+    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+  };
+
   const handlePayment = async () => {
     if (!isAuthenticated) {
       toast({
@@ -112,6 +183,15 @@ const Booking = () => {
         variant: "destructive",
       });
       navigate("/auth");
+      return;
+    }
+
+    if (!hasPhone) {
+      toast({
+        title: "Phone Required",
+        description: "Please add your phone number to proceed",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -166,6 +246,17 @@ const Booking = () => {
               description: "Your booking has been confirmed",
             });
 
+            // Fetch the booking to get tracking ID for WhatsApp
+            const { data: bookingData } = await supabase
+              .from('bookings')
+              .select('tracking_id')
+              .eq('id', data.bookingId)
+              .single();
+
+            if (bookingData?.tracking_id) {
+              openWhatsAppConfirmation(bookingData.tracking_id);
+            }
+
             navigate(`/receipt/${data.bookingId}`);
           } catch (err) {
             console.error("Verification error:", err);
@@ -177,8 +268,8 @@ const Booking = () => {
           }
         },
         prefill: {
-          email: "",
-          contact: "",
+          email: userProfile?.email || "",
+          contact: userProfile?.phone || "",
         },
         theme: {
           color: "#F97316",
@@ -245,13 +336,45 @@ const Booking = () => {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <Phone className="w-5 h-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Phone Number</p>
-                    <p className="font-medium">{userProfile.phone || "Not provided"}</p>
+                {hasPhone ? (
+                  <div className="flex items-start gap-3">
+                    <Phone className="w-5 h-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Phone Number</p>
+                      <p className="font-medium">{userProfile.phone}</p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <Phone className="w-5 h-5 text-destructive mt-0.5" />
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="phone" className="text-sm text-destructive font-medium">
+                        Phone Number (Required)
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="Enter your phone number"
+                          value={phoneInput}
+                          onChange={(e) => setPhoneInput(e.target.value)}
+                          className="max-w-[250px]"
+                          maxLength={15}
+                        />
+                        <Button
+                          size="sm"
+                          onClick={handleSavePhone}
+                          disabled={savingPhone || !phoneInput.trim()}
+                        >
+                          {savingPhone ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Required to proceed. You'll receive booking confirmation on WhatsApp.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-start gap-3">
                   <Mail className="w-5 h-5 text-primary mt-0.5" />
@@ -341,7 +464,7 @@ const Booking = () => {
                 size="xl"
                 className="w-full"
                 onClick={handlePayment}
-                disabled={isLoading}
+                disabled={isLoading || !hasPhone}
               >
                 {isLoading ? (
                   <>
@@ -355,6 +478,11 @@ const Booking = () => {
                   </>
                 )}
               </Button>
+              {!hasPhone && (
+                <p className="text-center text-sm text-destructive mt-2">
+                  Please add your phone number above to proceed
+                </p>
+              )}
               <p className="text-center text-sm text-muted-foreground mt-4">
                 Secure payment powered by Razorpay. UPI, Cards, Net Banking accepted.
               </p>
