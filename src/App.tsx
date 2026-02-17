@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import Booking from "./pages/Booking";
 import Receipt from "./pages/Receipt";
 import Track from "./pages/Track";
+import Profile from "./pages/Profile";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/booking" element={<Booking />} />
           <Route path="/receipt/:bookingId" element={<Receipt />} />
           <Route path="/track" element={<Track />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

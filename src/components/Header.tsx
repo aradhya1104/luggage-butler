@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Luggage, LogOut } from "lucide-react";
+import { Menu, X, Luggage, LogOut, UserCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -67,6 +67,12 @@ const Header = () => {
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
+                <Button variant="ghost" size="sm" asChild>
+                  <a href="/profile">
+                    <UserCircle className="w-4 h-4 mr-2" />
+                    Profile
+                  </a>
+                </Button>
                 <Button variant="ghost" size="sm" onClick={handleSignOut}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
@@ -114,6 +120,12 @@ const Header = () => {
               <div className="flex flex-col gap-2 px-4 pt-4 border-t border-border mt-2">
                 {user ? (
                   <>
+                    <Button variant="outline" className="w-full" asChild>
+                      <a href="/profile">
+                        <UserCircle className="w-4 h-4 mr-2" />
+                        My Profile
+                      </a>
+                    </Button>
                     <Button variant="outline" className="w-full" onClick={handleSignOut}>
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign Out
