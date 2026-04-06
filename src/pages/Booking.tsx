@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, MapPin, Calendar, Briefcase, CreditCard, Loader2, User, Phone, Mail } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Briefcase, CreditCard, Loader2, User, Phone, Mail, Banknote } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,7 @@ const Booking = () => {
   const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isCodLoading, setIsCodLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -175,7 +176,7 @@ const Booking = () => {
     window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
   };
 
-  const handlePayment = async () => {
+  const validateBeforePayment = () => {
     if (!isAuthenticated) {
       toast({
         title: "Login Required",
@@ -183,7 +184,7 @@ const Booking = () => {
         variant: "destructive",
       });
       navigate("/auth");
-      return;
+      return false;
     }
 
     if (!hasPhone) {
@@ -192,7 +193,7 @@ const Booking = () => {
         description: "Please add your phone number to proceed",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     if (!pickupLocation || !dropOffDate || !pickupDate) {
@@ -201,8 +202,66 @@ const Booking = () => {
         description: "Please go back and fill all required details",
         variant: "destructive",
       });
-      return;
+      return false;
     }
+
+    return true;
+  };
+
+  const handleCOD = async () => {
+    if (!validateBeforePayment()) return;
+
+    setIsCodLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Not authenticated");
+
+      // Generate tracking ID
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let trackingId = 'LUG-';
+      for (let i = 0; i < 8; i++) {
+        trackingId += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+
+      const { data: booking, error: bookingError } = await supabase
+        .from('bookings')
+        .insert({
+          user_id: session.user.id,
+          pickup_location: pickupLocation,
+          delivery_location: deliveryLocation || null,
+          drop_off_date: dropOffDate,
+          pickup_date: pickupDate,
+          number_of_bags: numberOfBags,
+          amount: amount,
+          tracking_id: trackingId,
+          status: 'cod_pending',
+        })
+        .select()
+        .single();
+
+      if (bookingError) throw bookingError;
+
+      toast({
+        title: "Booking Confirmed (COD)",
+        description: `Pay ₹${amount} at the time of pickup. Tracking ID: ${trackingId}`,
+      });
+
+      openWhatsAppConfirmation(trackingId);
+      navigate(`/receipt/${booking.id}`);
+    } catch (error) {
+      console.error("COD booking error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create booking. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCodLoading(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!validateBeforePayment()) return;
 
     setIsLoading(true);
 
@@ -246,7 +305,6 @@ const Booking = () => {
               description: "Your booking has been confirmed",
             });
 
-            // Fetch the booking to get tracking ID for WhatsApp
             const { data: bookingData } = await supabase
               .from('bookings')
               .select('tracking_id')
@@ -458,13 +516,17 @@ const Booking = () => {
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardHeader>
+              <CardTitle>Choose Payment Method</CardTitle>
+              <CardDescription>Pay online or cash on delivery</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <Button
                 variant="hero"
                 size="xl"
                 className="w-full"
                 onClick={handlePayment}
-                disabled={isLoading || !hasPhone}
+                disabled={isLoading || isCodLoading || !hasPhone}
               >
                 {isLoading ? (
                   <>
@@ -474,17 +536,45 @@ const Booking = () => {
                 ) : (
                   <>
                     <CreditCard className="w-5 h-5" />
-                    Pay ₹{amount} with Razorpay
+                    Pay ₹{amount} Online
                   </>
                 )}
               </Button>
+
+              <div className="relative flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border" />
+                </div>
+                <span className="relative bg-card px-3 text-sm text-muted-foreground">OR</span>
+              </div>
+
+              <Button
+                variant="outline"
+                size="xl"
+                className="w-full"
+                onClick={handleCOD}
+                disabled={isLoading || isCodLoading || !hasPhone}
+              >
+                {isCodLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Banknote className="w-5 h-5" />
+                    Cash on Delivery - ₹{amount}
+                  </>
+                )}
+              </Button>
+
               {!hasPhone && (
                 <p className="text-center text-sm text-destructive mt-2">
                   Please add your phone number above to proceed
                 </p>
               )}
               <p className="text-center text-sm text-muted-foreground mt-4">
-                Secure payment powered by Razorpay. UPI, Cards, Net Banking accepted.
+                Online: UPI, Cards, Net Banking via Razorpay. COD: Pay when your luggage is picked up.
               </p>
             </CardContent>
           </Card>
