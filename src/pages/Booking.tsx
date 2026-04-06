@@ -176,7 +176,7 @@ const Booking = () => {
     window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
   };
 
-  const handlePayment = async () => {
+  const validateBeforePayment = () => {
     if (!isAuthenticated) {
       toast({
         title: "Login Required",
@@ -184,7 +184,7 @@ const Booking = () => {
         variant: "destructive",
       });
       navigate("/auth");
-      return;
+      return false;
     }
 
     if (!hasPhone) {
@@ -193,7 +193,7 @@ const Booking = () => {
         description: "Please add your phone number to proceed",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     if (!pickupLocation || !dropOffDate || !pickupDate) {
@@ -202,8 +202,66 @@ const Booking = () => {
         description: "Please go back and fill all required details",
         variant: "destructive",
       });
-      return;
+      return false;
     }
+
+    return true;
+  };
+
+  const handleCOD = async () => {
+    if (!validateBeforePayment()) return;
+
+    setIsCodLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Not authenticated");
+
+      // Generate tracking ID
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let trackingId = 'LUG-';
+      for (let i = 0; i < 8; i++) {
+        trackingId += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+
+      const { data: booking, error: bookingError } = await supabase
+        .from('bookings')
+        .insert({
+          user_id: session.user.id,
+          pickup_location: pickupLocation,
+          delivery_location: deliveryLocation || null,
+          drop_off_date: dropOffDate,
+          pickup_date: pickupDate,
+          number_of_bags: numberOfBags,
+          amount: amount,
+          tracking_id: trackingId,
+          status: 'cod_pending',
+        })
+        .select()
+        .single();
+
+      if (bookingError) throw bookingError;
+
+      toast({
+        title: "Booking Confirmed (COD)",
+        description: `Pay ₹${amount} at the time of pickup. Tracking ID: ${trackingId}`,
+      });
+
+      openWhatsAppConfirmation(trackingId);
+      navigate(`/receipt/${booking.id}`);
+    } catch (error) {
+      console.error("COD booking error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create booking. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCodLoading(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!validateBeforePayment()) return;
 
     setIsLoading(true);
 
@@ -247,7 +305,6 @@ const Booking = () => {
               description: "Your booking has been confirmed",
             });
 
-            // Fetch the booking to get tracking ID for WhatsApp
             const { data: bookingData } = await supabase
               .from('bookings')
               .select('tracking_id')
