@@ -38,6 +38,7 @@ const Booking = () => {
   const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isCodLoading, setIsCodLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
