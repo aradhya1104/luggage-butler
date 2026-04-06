@@ -516,13 +516,17 @@ const Booking = () => {
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardHeader>
+              <CardTitle>Choose Payment Method</CardTitle>
+              <CardDescription>Pay online or cash on delivery</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <Button
                 variant="hero"
                 size="xl"
                 className="w-full"
                 onClick={handlePayment}
-                disabled={isLoading || !hasPhone}
+                disabled={isLoading || isCodLoading || !hasPhone}
               >
                 {isLoading ? (
                   <>
@@ -532,17 +536,45 @@ const Booking = () => {
                 ) : (
                   <>
                     <CreditCard className="w-5 h-5" />
-                    Pay ₹{amount} with Razorpay
+                    Pay ₹{amount} Online
                   </>
                 )}
               </Button>
+
+              <div className="relative flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border" />
+                </div>
+                <span className="relative bg-card px-3 text-sm text-muted-foreground">OR</span>
+              </div>
+
+              <Button
+                variant="outline"
+                size="xl"
+                className="w-full"
+                onClick={handleCOD}
+                disabled={isLoading || isCodLoading || !hasPhone}
+              >
+                {isCodLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Banknote className="w-5 h-5" />
+                    Cash on Delivery - ₹{amount}
+                  </>
+                )}
+              </Button>
+
               {!hasPhone && (
                 <p className="text-center text-sm text-destructive mt-2">
                   Please add your phone number above to proceed
                 </p>
               )}
               <p className="text-center text-sm text-muted-foreground mt-4">
-                Secure payment powered by Razorpay. UPI, Cards, Net Banking accepted.
+                Online: UPI, Cards, Net Banking via Razorpay. COD: Pay when your luggage is picked up.
               </p>
             </CardContent>
           </Card>
