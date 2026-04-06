@@ -1,0 +1,2 @@
+ALTER TABLE public.bookings DROP CONSTRAINT bookings_status_check;
+ALTER TABLE public.bookings ADD CONSTRAINT bookings_status_check CHECK (status = ANY (ARRAY['pending', 'paid', 'in_transit', 'delivered', 'completed', 'cancelled', 'cod_pending']));
