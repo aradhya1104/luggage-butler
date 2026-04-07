@@ -416,7 +416,7 @@ const Booking = () => {
                           placeholder="Enter your phone number"
                           value={phoneInput}
                           onChange={(e) => setPhoneInput(e.target.value)}
-                          className="max-w-[250px]"
+                          className="w-full sm:max-w-[250px]"
                           maxLength={15}
                         />
                         <Button
