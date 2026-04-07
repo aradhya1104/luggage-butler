@@ -33,7 +33,7 @@ const TrackingSection = () => {
 
         {/* Tracking Form */}
         <div className="max-w-xl mx-auto mb-16">
-          <form onSubmit={handleTrack} className="flex gap-3">
+          <form onSubmit={handleTrack} className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
@@ -44,7 +44,7 @@ const TrackingSection = () => {
                 className="pl-12 h-14 text-base rounded-xl border-border focus:border-accent"
               />
             </div>
-            <Button type="submit" variant="accent" size="lg" className="h-14 px-8">
+            <Button type="submit" variant="accent" size="lg" className="h-14 px-8 w-full sm:w-auto">
               Track
             </Button>
           </form>

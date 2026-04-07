@@ -46,7 +46,7 @@ const Hero = () => {
               Trusted by 50,000+ travelers
             </div>
             
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
               Store Your Luggage,{" "}
               <span className="text-accent">Explore Freely</span>
             </h1>
@@ -116,7 +116,7 @@ const Hero = () => {
                 />
 
                 {/* Date Selection */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Drop-off Date</label>
                     <div className="relative">
