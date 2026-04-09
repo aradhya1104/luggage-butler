@@ -61,9 +61,7 @@ const Track = () => {
     setSearched(true);
 
     const { data, error } = await supabase
-      .from("bookings")
-      .select("*")
-      .eq("tracking_id", searchId.trim().toUpperCase())
+      .rpc("get_booking_by_tracking_id", { p_tracking_id: searchId.trim().toUpperCase() })
       .single();
 
     if (error || !data) {
