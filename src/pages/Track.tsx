@@ -3,21 +3,17 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, Calendar, Briefcase, Package, Truck, CheckCircle, Clock, Loader2 } from "lucide-react";
+import { Search, Calendar, Briefcase, Package, Truck, CheckCircle, Clock, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 
 interface Booking {
-  id: string;
-  pickup_location: string;
-  delivery_location: string | null;
+  tracking_id: string;
+  status: string;
   drop_off_date: string;
   pickup_date: string;
   number_of_bags: number;
-  amount: number;
-  status: string;
-  tracking_id: string;
   created_at: string;
 }
 
@@ -166,30 +162,12 @@ const Track = () => {
                   </CardContent>
                 </Card>
 
-                {/* Booking Details */}
+                {/* Booking Details (limited public info) */}
                 <Card>
                   <CardHeader>
                     <CardTitle>Booking Details</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <MapPin className="w-5 h-5 text-primary mt-0.5" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Pickup Location</p>
-                        <p className="font-medium">{booking.pickup_location}</p>
-                      </div>
-                    </div>
-
-                    {booking.delivery_location && (
-                      <div className="flex items-start gap-3">
-                        <MapPin className="w-5 h-5 text-accent mt-0.5" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Delivery Location</p>
-                          <p className="font-medium">{booking.delivery_location}</p>
-                        </div>
-                      </div>
-                    )}
-
                     <div className="flex items-start gap-3">
                       <Calendar className="w-5 h-5 text-primary mt-0.5" />
                       <div className="flex-1">
@@ -218,6 +196,9 @@ const Track = () => {
                       <span className="text-muted-foreground">Tracking ID</span>
                       <span className="font-mono font-medium">{booking.tracking_id}</span>
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Sign in to view full booking details including pickup and delivery addresses.
+                    </p>
                   </CardContent>
                 </Card>
               </>
