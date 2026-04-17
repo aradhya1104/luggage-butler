@@ -57,7 +57,7 @@ const statusOptions = [
   { value: "completed", label: "Completed", icon: CheckCircle, color: "bg-green-700" },
 ];
 
-const SUPER_ADMIN_EMAIL = "aradhya1104tripathi@gmail.com";
+// Super admin status is determined server-side via the user_roles table (super_admin role).
 
 const AdminDashboard = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -81,24 +81,27 @@ const AdminDashboard = () => {
       return;
     }
 
+    // Check both admin and super_admin via user_roles (server-side enforcement via RLS)
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', session.user.id)
-      .eq('role', 'admin')
-      .single();
+      .eq('user_id', session.user.id);
 
-    if (!roleData) {
+    const roles = (roleData || []).map(r => r.role);
+    const isAdmin = roles.includes('admin') || roles.includes('super_admin');
+    const superAdmin = roles.includes('super_admin');
+
+    if (!isAdmin) {
       await supabase.auth.signOut();
       navigate('/admin');
       return;
     }
 
     setCurrentUserEmail(session.user.email || null);
-    setIsSuperAdmin(session.user.email === SUPER_ADMIN_EMAIL);
+    setIsSuperAdmin(superAdmin);
     
     fetchBookings();
-    if (session.user.email === SUPER_ADMIN_EMAIL) {
+    if (superAdmin) {
       fetchAdminRequests();
     }
   };

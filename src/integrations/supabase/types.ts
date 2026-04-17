@@ -192,14 +192,10 @@ export type Database = {
       get_booking_by_tracking_id: {
         Args: { p_tracking_id: string }
         Returns: {
-          amount: number
           created_at: string
-          delivery_location: string
           drop_off_date: string
-          id: string
           number_of_bags: number
           pickup_date: string
-          pickup_location: string
           status: string
           tracking_id: string
         }[]
@@ -213,7 +209,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -341,7 +337,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "super_admin"],
     },
   },
 } as const

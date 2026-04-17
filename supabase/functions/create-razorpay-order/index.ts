@@ -22,7 +22,6 @@ const verifyPaymentSchema = z.object({
   razorpayOrderId: z.string().min(1, "Order ID is required"),
   razorpayPaymentId: z.string().min(1, "Payment ID is required"),
   razorpaySignature: z.string().min(1, "Signature is required"),
-  bookingId: z.string().uuid("Invalid booking ID"),
 });
 
 // Calculate price based on number of bags
@@ -208,7 +207,24 @@ Deno.serve(async (req) => {
         );
       }
       
-      const { razorpayOrderId, razorpayPaymentId, razorpaySignature, bookingId } = parseResult.data;
+      const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = parseResult.data;
+
+      // SECURITY: Derive trusted bookingId from the payments record by razorpay_order_id.
+      // Never trust a client-supplied bookingId — that allows marking unrelated bookings as paid.
+      const { data: paymentRecord, error: paymentLookupError } = await supabaseClient
+        .from('payments')
+        .select('booking_id')
+        .eq('razorpay_order_id', razorpayOrderId)
+        .single();
+
+      if (paymentLookupError || !paymentRecord) {
+        console.error('Payment lookup error:', paymentLookupError);
+        return new Response(
+          JSON.stringify({ error: 'Payment record not found for this order' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const bookingId = paymentRecord.booking_id;
 
       // Verify signature using Web Crypto API
       const encoder = new TextEncoder();
