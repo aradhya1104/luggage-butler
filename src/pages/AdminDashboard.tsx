@@ -315,6 +315,129 @@ const AdminDashboard = () => {
     completed: bookings.filter(b => b.status === 'completed' || b.status === 'delivered').length,
   };
 
+  const renderOrdersCard = () => (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>All Orders</CardTitle>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={exportToExcel} disabled={bookings.length === 0}>
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            Export to Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={fetchBookings}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="text-center py-8 text-muted-foreground">Loading orders...</div>
+        ) : bookings.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">No orders found</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-8"></TableHead>
+                  <TableHead>Tracking ID</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Pickup</TableHead>
+                  <TableHead>Delivery</TableHead>
+                  <TableHead>Dates</TableHead>
+                  <TableHead>Bags</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Update Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bookings.map((booking) => {
+                  const isOpen = expandedId === booking.id;
+                  return (
+                    <>
+                      <TableRow key={booking.id} className="cursor-pointer" onClick={() => setExpandedId(isOpen ? null : booking.id)}>
+                        <TableCell>
+                          {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{booking.tracking_id || 'N/A'}</TableCell>
+                        <TableCell className="min-w-[150px]">
+                          <div className="text-sm font-medium">{booking.customer_name || 'N/A'}</div>
+                          <div className="text-xs text-muted-foreground">{booking.customer_phone || 'No phone'}</div>
+                        </TableCell>
+                        <TableCell className="max-w-[150px] truncate">{booking.pickup_location}</TableCell>
+                        <TableCell className="max-w-[150px] truncate">{booking.delivery_location || '-'}</TableCell>
+                        <TableCell className="text-sm">
+                          <div>{format(new Date(booking.drop_off_date), 'dd MMM')}</div>
+                          <div className="text-muted-foreground">to {format(new Date(booking.pickup_date), 'dd MMM')}</div>
+                        </TableCell>
+                        <TableCell>{booking.number_of_bags}</TableCell>
+                        <TableCell>₹{booking.amount}</TableCell>
+                        <TableCell>{getStatusBadge(booking.status)}</TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Select
+                            value={booking.status}
+                            onValueChange={(value) => updateStatus(booking.id, value)}
+                            disabled={updatingId === booking.id}
+                          >
+                            <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {statusOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                      {isOpen && (
+                        <TableRow key={`${booking.id}-details`} className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell colSpan={10} className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                              <div>
+                                <div className="font-semibold text-foreground mb-2 flex items-center gap-2"><UserIcon className="w-4 h-4" /> Customer</div>
+                                <div className="space-y-1 text-muted-foreground">
+                                  <div><span className="font-medium text-foreground">Name:</span> {booking.customer_name || '—'}</div>
+                                  <div className="flex items-start gap-1"><Mail className="w-3 h-3 mt-1" /><span className="break-all">{booking.customer_email || '—'}</span></div>
+                                  <div className="flex items-center gap-1"><Phone className="w-3 h-3" />{booking.customer_phone || '—'}</div>
+                                  <div className="flex items-start gap-1"><MapPin className="w-3 h-3 mt-1" /><span>{booking.customer_address || '—'}</span></div>
+                                  <div className="flex items-center gap-1 text-xs"><Hash className="w-3 h-3" /><span className="font-mono break-all">{booking.user_id}</span></div>
+                                </div>
+                              </div>
+                              <div>
+                                <div className="font-semibold text-foreground mb-2 flex items-center gap-2"><MapPin className="w-4 h-4" /> Locations</div>
+                                <div className="space-y-1 text-muted-foreground">
+                                  <div><span className="font-medium text-foreground">Pickup:</span> {booking.pickup_location}</div>
+                                  <div><span className="font-medium text-foreground">Delivery:</span> {booking.delivery_location || '—'}</div>
+                                </div>
+                              </div>
+                              <div>
+                                <div className="font-semibold text-foreground mb-2 flex items-center gap-2"><Calendar className="w-4 h-4" /> Booking</div>
+                                <div className="space-y-1 text-muted-foreground">
+                                  <div><span className="font-medium text-foreground">Booking ID:</span> <span className="font-mono text-xs break-all">{booking.id}</span></div>
+                                  <div><span className="font-medium text-foreground">Tracking ID:</span> {booking.tracking_id || '—'}</div>
+                                  <div><span className="font-medium text-foreground">Drop off:</span> {format(new Date(booking.drop_off_date), 'dd MMM yyyy')}</div>
+                                  <div><span className="font-medium text-foreground">Pickup:</span> {format(new Date(booking.pickup_date), 'dd MMM yyyy')}</div>
+                                  <div><span className="font-medium text-foreground">Bags:</span> {booking.number_of_bags}</div>
+                                  <div><span className="font-medium text-foreground">Amount:</span> ₹{booking.amount}</div>
+                                  <div><span className="font-medium text-foreground">Created:</span> {format(new Date(booking.created_at), 'dd MMM yyyy, HH:mm')}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
