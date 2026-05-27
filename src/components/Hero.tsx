@@ -104,6 +104,7 @@ const Hero = () => {
                   placeholder="Enter pickup address"
                   value={pickupLocation}
                   onChange={setPickupLocation}
+                  showCurrentLocationButton
                 />
 
                 {/* Drop-off Location */}
