@@ -69,6 +69,7 @@ const AdminDashboard = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -142,19 +143,63 @@ const AdminDashboard = () => {
     const userIds = [...new Set(bookingsData?.map(b => b.user_id) || [])];
     const { data: profilesData } = await supabase
       .from('profiles')
-      .select('user_id, full_name, phone')
+      .select('user_id, full_name, phone, address')
       .in('user_id', userIds);
 
     const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
+
+    // Fetch customer emails via admin-only RPC
+    const emailsMap = new Map<string, string>();
+    if (userIds.length > 0) {
+      const { data: emailsData } = await supabase.rpc('get_user_emails', { _user_ids: userIds });
+      (emailsData || []).forEach((row: { user_id: string; email: string }) => {
+        emailsMap.set(row.user_id, row.email);
+      });
+    }
 
     const enrichedBookings = bookingsData?.map(booking => ({
       ...booking,
       customer_name: profilesMap.get(booking.user_id)?.full_name || null,
       customer_phone: profilesMap.get(booking.user_id)?.phone || null,
+      customer_address: profilesMap.get(booking.user_id)?.address || null,
+      customer_email: emailsMap.get(booking.user_id) || null,
     })) || [];
 
     setBookings(enrichedBookings);
     setLoading(false);
+  };
+
+  const exportToExcel = () => {
+    if (bookings.length === 0) {
+      toast({ title: "No data", description: "There are no bookings to export." });
+      return;
+    }
+    const rows = bookings.map((b) => ({
+      "Tracking ID": b.tracking_id || "",
+      "Booking ID": b.id,
+      "Customer Name": b.customer_name || "",
+      "Customer Email": b.customer_email || "",
+      "Customer Phone": b.customer_phone || "",
+      "Customer Address": b.customer_address || "",
+      "User ID": b.user_id,
+      "Pickup Location": b.pickup_location,
+      "Delivery Location": b.delivery_location || "",
+      "Drop Off Date": b.drop_off_date,
+      "Pickup Date": b.pickup_date,
+      "Number of Bags": b.number_of_bags,
+      "Amount (INR)": b.amount,
+      "Status": b.status,
+      "Created At": format(new Date(b.created_at), "yyyy-MM-dd HH:mm:ss"),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const colWidths = Object.keys(rows[0]).map((k) => ({
+      wch: Math.max(k.length, ...rows.map((r) => String(r[k as keyof typeof r] ?? "").length)) + 2,
+    }));
+    (ws as any)["!cols"] = colWidths;
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Bookings");
+    XLSX.writeFile(wb, `luggo-bookings-${format(new Date(), "yyyy-MM-dd-HHmm")}.xlsx`);
+    toast({ title: "Exported", description: `${rows.length} bookings exported to Excel.` });
   };
 
   const updateStatus = async (bookingId: string, newStatus: string) => {
