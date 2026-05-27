@@ -200,6 +200,13 @@ export type Database = {
           tracking_id: string
         }[]
       }
+      get_user_emails: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
