@@ -11,7 +11,7 @@ interface LocationInputProps {
   showCurrentLocationButton?: boolean;
 }
 
-const LocationInput = ({ label, placeholder, value, onChange, optional, showCurrentLocationButton = true }: LocationInputProps) => {
+const LocationInput = ({ label, placeholder, value, onChange, optional, showCurrentLocationButton = false }: LocationInputProps) => {
   const [isDetecting, setIsDetecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
