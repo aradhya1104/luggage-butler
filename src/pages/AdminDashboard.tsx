@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -356,8 +356,8 @@ const AdminDashboard = () => {
                 {bookings.map((booking) => {
                   const isOpen = expandedId === booking.id;
                   return (
-                    <>
-                      <TableRow key={booking.id} className="cursor-pointer" onClick={() => setExpandedId(isOpen ? null : booking.id)}>
+                    <Fragment key={booking.id}>
+                      <TableRow className="cursor-pointer" onClick={() => setExpandedId(isOpen ? null : booking.id)}>
                         <TableCell>
                           {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                         </TableCell>
@@ -391,7 +391,7 @@ const AdminDashboard = () => {
                         </TableCell>
                       </TableRow>
                       {isOpen && (
-                        <TableRow key={`${booking.id}-details`} className="bg-muted/30 hover:bg-muted/30">
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
                           <TableCell colSpan={10} className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                               <div>
@@ -427,7 +427,7 @@ const AdminDashboard = () => {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </TableBody>
