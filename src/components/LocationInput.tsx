@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapPin, Crosshair, Loader2 } from "lucide-react";
+import { MapPin, Crosshair, Loader2, LocateFixed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface LocationInputProps {
@@ -8,9 +8,10 @@ interface LocationInputProps {
   value: string;
   onChange: (value: string) => void;
   optional?: boolean;
+  showCurrentLocationButton?: boolean;
 }
 
-const LocationInput = ({ label, placeholder, value, onChange, optional }: LocationInputProps) => {
+const LocationInput = ({ label, placeholder, value, onChange, optional, showCurrentLocationButton = true }: LocationInputProps) => {
   const [isDetecting, setIsDetecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,6 +104,23 @@ const LocationInput = ({ label, placeholder, value, onChange, optional }: Locati
       </div>
       {error && (
         <p className="text-xs text-destructive">{error}</p>
+      )}
+      {showCurrentLocationButton && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={detectLocation}
+          disabled={isDetecting}
+          className="w-full"
+        >
+          {isDetecting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <LocateFixed className="w-4 h-4" />
+          )}
+          {isDetecting ? "Detecting location..." : "Use my current location"}
+        </Button>
       )}
     </div>
   );
