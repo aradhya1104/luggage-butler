@@ -20,9 +20,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Luggage, LogOut, Package, Clock, CheckCircle, Truck, RefreshCw, UserPlus, X, Check } from "lucide-react";
+import { Luggage, LogOut, Package, Clock, CheckCircle, Truck, RefreshCw, UserPlus, X, Check, FileSpreadsheet, ChevronDown, ChevronRight, Mail, Phone, MapPin, User as UserIcon, Calendar, Hash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import * as XLSX from "xlsx";
 
 interface Booking {
   id: string;
@@ -38,6 +39,8 @@ interface Booking {
   user_id: string;
   customer_name?: string | null;
   customer_phone?: string | null;
+  customer_email?: string | null;
+  customer_address?: string | null;
 }
 
 interface AdminRequest {
