@@ -48,7 +48,6 @@ function sendOrderToGoogleSheet(payload: {
   fetch(GOOGLE_SCRIPT_URL, {
     method: "POST",
     mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   }).catch((err) => {
     console.error("Failed to send order to Google Sheet:", err);
