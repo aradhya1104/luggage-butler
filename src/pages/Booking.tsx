@@ -264,6 +264,18 @@ const Booking = () => {
 
       if (bookingError) throw bookingError;
 
+      sendOrderToGoogleSheet({
+        orderId: trackingId,
+        name: userProfile?.full_name || "",
+        phone: userProfile?.phone || phoneInput.trim() || "",
+        email: userProfile?.email || "",
+        pickup: pickupLocation,
+        drop: deliveryLocation || "",
+        bags: String(numberOfBags),
+        amount: String(amount),
+        time: new Date().toISOString(),
+      });
+
       toast({
         title: "Booking Confirmed (COD)",
         description: `Pay ₹${amount} at the time of pickup. Tracking ID: ${trackingId}`,
