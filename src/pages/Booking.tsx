@@ -335,6 +335,18 @@ const Booking = () => {
 
             if (verifyResult.error) throw verifyResult.error;
 
+            sendOrderToGoogleSheet({
+              orderId: data.trackingId || data.bookingId,
+              name: userProfile?.full_name || "",
+              phone: userProfile?.phone || phoneInput.trim() || "",
+              email: userProfile?.email || "",
+              pickup: pickupLocation,
+              drop: deliveryLocation || "",
+              bags: String(numberOfBags),
+              amount: String(amount),
+              time: new Date().toISOString(),
+            });
+
             toast({
               title: "Payment Successful!",
               description: "Your booking has been confirmed",
