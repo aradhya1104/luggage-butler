@@ -32,6 +32,29 @@ function getPrice(bags: number): number {
   return PRICING[bags] || 300;
 }
 
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwD67i5ljmO71X00XjOZgrMXkmvMMWQ3XeFySOCnT0aOtt1GWJW2hhzZvPqVqkOA1Yc/exec";
+
+function sendOrderToGoogleSheet(payload: {
+  orderId: string;
+  name: string;
+  phone: string;
+  email: string;
+  pickup: string;
+  drop: string;
+  bags: string;
+  amount: string;
+  time: string;
+}) {
+  fetch(GOOGLE_SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }).catch((err) => {
+    console.error("Failed to send order to Google Sheet:", err);
+  });
+}
+
 const Booking = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -241,6 +264,18 @@ const Booking = () => {
 
       if (bookingError) throw bookingError;
 
+      sendOrderToGoogleSheet({
+        orderId: trackingId,
+        name: userProfile?.full_name || "",
+        phone: userProfile?.phone || phoneInput.trim() || "",
+        email: userProfile?.email || "",
+        pickup: pickupLocation,
+        drop: deliveryLocation || "",
+        bags: String(numberOfBags),
+        amount: String(amount),
+        time: new Date().toISOString(),
+      });
+
       toast({
         title: "Booking Confirmed (COD)",
         description: `Pay ₹${amount} at the time of pickup. Tracking ID: ${trackingId}`,
@@ -299,6 +334,18 @@ const Booking = () => {
             });
 
             if (verifyResult.error) throw verifyResult.error;
+
+            sendOrderToGoogleSheet({
+              orderId: data.trackingId || data.bookingId,
+              name: userProfile?.full_name || "",
+              phone: userProfile?.phone || phoneInput.trim() || "",
+              email: userProfile?.email || "",
+              pickup: pickupLocation,
+              drop: deliveryLocation || "",
+              bags: String(numberOfBags),
+              amount: String(amount),
+              time: new Date().toISOString(),
+            });
 
             toast({
               title: "Payment Successful!",
