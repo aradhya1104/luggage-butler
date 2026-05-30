@@ -32,7 +32,7 @@ function getPrice(bags: number): number {
   return PRICING[bags] || 300;
 }
 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwD67i5ljmO71X00XjOZgrMXkmvMMWQ3XeFySOCnT0aOtt1GWJW2hhzZvPqVqkOA1Yc/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxtpvFNuqBLW11Ntq8G4XXL6Pp4aC5pWyOQtL8F9BKxpAk9Gsq87oTUnjQwOrlrUvQwHg/exec";
 
 function sendOrderToGoogleSheet(payload: {
   orderId: string;
