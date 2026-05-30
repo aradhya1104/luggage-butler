@@ -119,25 +119,27 @@ const Hero = () => {
                 {/* Date Selection */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Drop-off Date</label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <input
-                        type="date"
-                        value={dropOffDate}
-                        onChange={(e) => setDropOffDate(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Pickup Date</label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <input
                         type="date"
+                        min={new Date().toISOString().split("T")[0]}
                         value={pickupDate}
                         onChange={(e) => setPickupDate(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Drop-off Date</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <input
+                        type="date"
+                        min={new Date().toISOString().split("T")[0]}
+                        value={dropOffDate}
+                        onChange={(e) => setDropOffDate(e.target.value)}
                         className="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
                       />
                     </div>
