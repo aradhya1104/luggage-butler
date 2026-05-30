@@ -520,12 +520,12 @@ const Booking = () => {
                 <div className="flex-1">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-muted-foreground">Drop-off Date</p>
-                      <p className="font-medium">{dropOffDate || "Not specified"}</p>
-                    </div>
-                    <div>
                       <p className="text-sm text-muted-foreground">Pickup Date</p>
                       <p className="font-medium">{pickupDate || "Not specified"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Drop-off Date</p>
+                      <p className="font-medium">{dropOffDate || "Not specified"}</p>
                     </div>
                   </div>
                 </div>
