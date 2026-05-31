@@ -126,7 +126,15 @@ const Hero = () => {
                         type="date"
                         min={new Date().toISOString().split("T")[0]}
                         value={pickupDate}
-                        onChange={(e) => setPickupDate(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const today = new Date().toISOString().split("T")[0];
+                          if (val && val < today) return;
+                          setPickupDate(val);
+                          if (dropOffDate && val && dropOffDate < val) {
+                            setDropOffDate("");
+                          }
+                        }}
                         className="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
                       />
                     </div>
@@ -137,9 +145,14 @@ const Hero = () => {
                       <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <input
                         type="date"
-                        min={new Date().toISOString().split("T")[0]}
+                        min={pickupDate || new Date().toISOString().split("T")[0]}
                         value={dropOffDate}
-                        onChange={(e) => setDropOffDate(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const minDate = pickupDate || new Date().toISOString().split("T")[0];
+                          if (val && val < minDate) return;
+                          setDropOffDate(val);
+                        }}
                         className="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
                       />
                     </div>
