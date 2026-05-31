@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Calendar, ArrowRight, Shield, Clock, Truck } from "lucide-react";
 import heroImage from "@/assets/hero-luggage.jpg";
 import LocationInput from "./LocationInput";
+import { useToast } from "@/hooks/use-toast";
 
 const Hero = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [pickupLocation, setPickupLocation] = useState("");
   const [deliveryLocation, setDeliveryLocation] = useState("");
   const [dropOffDate, setDropOffDate] = useState("");
@@ -14,6 +16,14 @@ const Hero = () => {
   const [numberOfBags, setNumberOfBags] = useState("1");
 
   const handleGetQuote = () => {
+    if (!pickupLocation.trim() || !pickupDate || !dropOffDate) {
+      toast({
+        title: "Missing details",
+        description: "Please fill pickup location, pickup date and drop-off date.",
+        variant: "destructive",
+      });
+      return;
+    }
     const params = new URLSearchParams({
       pickup: pickupLocation,
       delivery: deliveryLocation,
@@ -22,6 +32,11 @@ const Hero = () => {
       bags: numberOfBags.replace(/\D/g, "") || "1",
     });
     navigate(`/booking?${params.toString()}`);
+  };
+
+  const scrollToBookingForm = () => {
+    const el = document.getElementById("quick-booking");
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   return (
@@ -80,11 +95,11 @@ const Hero = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button variant="hero" size="xl">
+              <Button variant="hero" size="xl" onClick={scrollToBookingForm}>
                 Book Storage Now
                 <ArrowRight className="w-5 h-5" />
               </Button>
-              <Button variant="outline" size="xl">
+              <Button variant="outline" size="xl" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}>
                 Learn More
               </Button>
             </div>
@@ -92,7 +107,7 @@ const Hero = () => {
 
           {/* Right - Booking Card */}
           <div className="relative animate-slide-in-right" style={{ animationDelay: "0.2s" }}>
-            <div className="bg-card rounded-2xl shadow-xl p-6 md:p-8 border border-border">
+            <div id="quick-booking" className="bg-card rounded-2xl shadow-xl p-6 md:p-8 border border-border scroll-mt-24">
               <h3 className="text-xl font-semibold text-foreground mb-6">
                 Quick Booking
               </h3>
