@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 interface UserProfile {
   full_name: string | null;
@@ -41,6 +42,7 @@ const Booking = () => {
   const [isCodLoading, setIsCodLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [phoneInput, setPhoneInput] = useState("");
   const [savingPhone, setSavingPhone] = useState(false);
@@ -53,7 +55,35 @@ const Booking = () => {
 
   const amount = getPrice(numberOfBags);
 
-  const hasPhone = !!(userProfile?.phone);
+  const profileReady = !checkingAuth && !loadingProfile;
+  const hasPhone = !!(userProfile?.phone?.trim());
+
+  const loadUserProfile = async (user: SupabaseUser) => {
+    setLoadingProfile(true);
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('full_name, phone')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error loading booking profile:", error);
+      }
+
+      const fullName = profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || null;
+      const phone = profile?.phone || user.phone || null;
+
+      setUserProfile({
+        full_name: fullName,
+        phone,
+        email: user.email || '',
+      });
+      setPhoneInput(phone || "");
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -62,37 +92,23 @@ const Booking = () => {
       setCheckingAuth(false);
       
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, phone')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        setUserProfile({
-          full_name: profile?.full_name || null,
-          phone: profile?.phone || null,
-          email: session.user.email || '',
-        });
+        await loadUserProfile(session.user);
+      } else {
+        setLoadingProfile(false);
       }
     };
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session);
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, phone')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        setUserProfile({
-          full_name: profile?.full_name || null,
-          phone: profile?.phone || null,
-          email: session.user.email || '',
-        });
+        window.setTimeout(() => {
+          void loadUserProfile(session.user);
+        }, 0);
       } else {
         setUserProfile(null);
+        setPhoneInput("");
+        setLoadingProfile(false);
       }
     });
 
@@ -130,8 +146,11 @@ const Booking = () => {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ phone: trimmed })
-      .eq('user_id', session.user.id);
+      .upsert({
+        user_id: session.user.id,
+        full_name: userProfile?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || null,
+        phone: trimmed,
+      }, { onConflict: 'user_id' });
 
     if (error) {
       toast({
@@ -140,7 +159,11 @@ const Booking = () => {
         variant: "destructive",
       });
     } else {
-      setUserProfile(prev => prev ? { ...prev, phone: trimmed } : prev);
+      setUserProfile(prev => ({
+        full_name: prev?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || null,
+        phone: trimmed,
+        email: prev?.email || session.user.email || '',
+      }));
       toast({
         title: "Saved",
         description: "Phone number saved successfully",
@@ -177,6 +200,14 @@ const Booking = () => {
   };
 
   const validateBeforePayment = () => {
+    if (!profileReady) {
+      toast({
+        title: "Loading Profile",
+        description: "Please wait while we load your saved contact details.",
+      });
+      return false;
+    }
+
     if (!isAuthenticated) {
       toast({
         title: "Login Required",
@@ -356,7 +387,20 @@ const Booking = () => {
           <p className="text-muted-foreground mb-8">Review your booking details before payment</p>
 
           {/* Customer Details Card */}
-          {userProfile && (
+          {loadingProfile && isAuthenticated && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Customer Details</CardTitle>
+                <CardDescription>Loading your saved contact information</CardDescription>
+              </CardHeader>
+              <CardContent className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading profile...
+              </CardContent>
+            </Card>
+          )}
+
+          {userProfile && !loadingProfile && (
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle>Customer Details</CardTitle>
@@ -503,7 +547,7 @@ const Booking = () => {
                 size="xl"
                 className="w-full"
                 onClick={handlePayment}
-                disabled={isLoading || isCodLoading || !hasPhone}
+                disabled={isLoading || isCodLoading || !profileReady || !hasPhone}
               >
                 {isLoading ? (
                   <>
@@ -530,7 +574,7 @@ const Booking = () => {
                 size="xl"
                 className="w-full"
                 onClick={handleCOD}
-                disabled={isLoading || isCodLoading || !hasPhone}
+                disabled={isLoading || isCodLoading || !profileReady || !hasPhone}
               >
                 {isCodLoading ? (
                   <>
@@ -545,7 +589,7 @@ const Booking = () => {
                 )}
               </Button>
 
-              {!hasPhone && (
+              {profileReady && !hasPhone && (
                 <p className="text-center text-sm text-destructive mt-2">
                   Please add your phone number above to proceed
                 </p>
