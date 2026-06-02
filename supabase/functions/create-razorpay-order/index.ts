@@ -8,6 +8,7 @@ const corsHeaders = {
 
 const RAZORPAY_KEY_ID = Deno.env.get('RAZORPAY_KEY_ID')!;
 const RAZORPAY_KEY_SECRET = Deno.env.get('RAZORPAY_KEY_SECRET')!;
+const GOOGLE_SCRIPT_URL = Deno.env.get('GOOGLE_SHEET_WEBHOOK_URL') ?? '';
 
 // Input validation schemas
 const createOrderSchema = z.object({
@@ -284,6 +285,30 @@ Deno.serve(async (req) => {
           JSON.stringify({ error: 'Failed to update booking' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
+      }
+
+      // Best-effort sheet log (server-side, never exposed to client)
+      if (GOOGLE_SCRIPT_URL && updatedBooking) {
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('full_name, phone')
+          .eq('user_id', user.id)
+          .single();
+        fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            orderId: updatedBooking.tracking_id || updatedBooking.id,
+            name: profile?.full_name || '',
+            phone: profile?.phone || '',
+            email: user.email || '',
+            pickup: updatedBooking.pickup_location,
+            drop: updatedBooking.delivery_location || '',
+            bags: String(updatedBooking.number_of_bags),
+            amount: String(updatedBooking.amount),
+            time: new Date().toISOString(),
+            paymentMethod: 'Online',
+          }),
+        }).catch(err => console.error('Sheet log failed:', err));
       }
 
       return new Response(
