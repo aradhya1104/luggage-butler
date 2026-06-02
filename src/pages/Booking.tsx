@@ -60,26 +60,29 @@ const Booking = () => {
 
   const loadUserProfile = async (user: SupabaseUser) => {
     setLoadingProfile(true);
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('full_name, phone')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('full_name, phone')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-    if (error) {
-      console.error("Error loading booking profile:", error);
+      if (error) {
+        console.error("Error loading booking profile:", error);
+      }
+
+      const fullName = profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || null;
+      const phone = profile?.phone || user.phone || null;
+
+      setUserProfile({
+        full_name: fullName,
+        phone,
+        email: user.email || '',
+      });
+      setPhoneInput(phone || "");
+    } finally {
+      setLoadingProfile(false);
     }
-
-    const fullName = profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || null;
-    const phone = profile?.phone || user.phone || null;
-
-    setUserProfile({
-      full_name: fullName,
-      phone,
-      email: user.email || '',
-    });
-    setPhoneInput(phone || "");
-    setLoadingProfile(false);
   };
 
   useEffect(() => {
@@ -96,10 +99,12 @@ const Booking = () => {
     };
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session);
       if (session?.user) {
-        await loadUserProfile(session.user);
+        window.setTimeout(() => {
+          void loadUserProfile(session.user);
+        }, 0);
       } else {
         setUserProfile(null);
         setPhoneInput("");
