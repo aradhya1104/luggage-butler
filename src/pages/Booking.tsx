@@ -32,28 +32,6 @@ function getPrice(bags: number): number {
   return PRICING[bags] || 300;
 }
 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxtpvFNuqBLW11Ntq8G4XXL6Pp4aC5pWyOQtL8F9BKxpAk9Gsq87oTUnjQwOrlrUvQwHg/exec";
-
-function sendOrderToGoogleSheet(payload: {
-  orderId: string;
-  name: string;
-  phone: string;
-  email: string;
-  pickup: string;
-  drop: string;
-  bags: string;
-  amount: string;
-  time: string;
-}) {
-  fetch(GOOGLE_SCRIPT_URL, {
-    method: "POST",
-    mode: "no-cors",
-    body: JSON.stringify(payload),
-  }).catch((err) => {
-    console.error("Failed to send order to Google Sheet:", err);
-  });
-}
-
 const Booking = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
