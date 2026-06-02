@@ -2,3 +2,6 @@ project_id = "qavlwlrnflfarruuyxpv"
 
 [functions.create-razorpay-order]
 verify_jwt = false
+
+[functions.create-cod-booking]
+verify_jwt = false

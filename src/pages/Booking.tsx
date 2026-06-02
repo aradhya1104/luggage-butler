@@ -32,28 +32,6 @@ function getPrice(bags: number): number {
   return PRICING[bags] || 300;
 }
 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxtpvFNuqBLW11Ntq8G4XXL6Pp4aC5pWyOQtL8F9BKxpAk9Gsq87oTUnjQwOrlrUvQwHg/exec";
-
-function sendOrderToGoogleSheet(payload: {
-  orderId: string;
-  name: string;
-  phone: string;
-  email: string;
-  pickup: string;
-  drop: string;
-  bags: string;
-  amount: string;
-  time: string;
-}) {
-  fetch(GOOGLE_SCRIPT_URL, {
-    method: "POST",
-    mode: "no-cors",
-    body: JSON.stringify(payload),
-  }).catch((err) => {
-    console.error("Failed to send order to Google Sheet:", err);
-  });
-}
-
 const Booking = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -235,53 +213,26 @@ const Booking = () => {
 
     setIsCodLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error("Not authenticated");
-
-      // Generate tracking ID
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      let trackingId = 'LUG-';
-      for (let i = 0; i < 8; i++) {
-        trackingId += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: session.user.id,
-          pickup_location: pickupLocation,
-          delivery_location: deliveryLocation || null,
-          drop_off_date: dropOffDate,
-          pickup_date: pickupDate,
-          number_of_bags: numberOfBags,
-          amount: amount,
-          tracking_id: trackingId,
-          status: 'cod_pending',
-        })
-        .select()
-        .single();
-
-      if (bookingError) throw bookingError;
-
-      sendOrderToGoogleSheet({
-        orderId: trackingId,
-        name: userProfile?.full_name || "",
-        phone: userProfile?.phone || phoneInput.trim() || "",
-        email: userProfile?.email || "",
-        pickup: pickupLocation,
-        drop: deliveryLocation || "",
-        bags: String(numberOfBags),
-        amount: String(amount),
-        time: new Date().toISOString(),
+      const { data, error } = await supabase.functions.invoke("create-cod-booking", {
+        body: {
+          pickupLocation,
+          deliveryLocation,
+          dropOffDate,
+          pickupDate,
+          numberOfBags,
+        },
       });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Booking Confirmed (COD)",
-        description: `Pay ₹${amount} at the time of pickup. Tracking ID: ${trackingId}`,
+        description: `Pay ₹${data.amount} at the time of pickup. Tracking ID: ${data.trackingId}`,
       });
 
-      openWhatsAppConfirmation(trackingId);
-      navigate(`/receipt/${booking.id}`);
+      openWhatsAppConfirmation(data.trackingId);
+      navigate(`/receipt/${data.booking.id}`);
     } catch (error) {
       console.error("COD booking error:", error);
       toast({
@@ -333,18 +284,6 @@ const Booking = () => {
             });
 
             if (verifyResult.error) throw verifyResult.error;
-
-            sendOrderToGoogleSheet({
-              orderId: data.trackingId || data.bookingId,
-              name: userProfile?.full_name || "",
-              phone: userProfile?.phone || phoneInput.trim() || "",
-              email: userProfile?.email || "",
-              pickup: pickupLocation,
-              drop: deliveryLocation || "",
-              bags: String(numberOfBags),
-              amount: String(amount),
-              time: new Date().toISOString(),
-            });
 
             toast({
               title: "Payment Successful!",
