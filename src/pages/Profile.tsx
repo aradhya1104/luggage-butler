@@ -87,16 +87,23 @@ const Profile = () => {
 
     const { error } = await supabase
       .from("profiles")
-      .update({
+      .upsert({
+        user_id: session.user.id,
         full_name: trimmedName,
         phone: trimmedPhone || null,
         address: trimmedAddress || null,
-      })
-      .eq("user_id", session.user.id);
+      }, { onConflict: "user_id" });
 
     if (error) {
+      console.error("Error saving profile:", error);
       toast({ title: "Error", description: "Failed to update profile", variant: "destructive" });
     } else {
+      setProfile(prev => ({
+        ...prev,
+        full_name: trimmedName,
+        phone: trimmedPhone,
+        address: trimmedAddress,
+      }));
       setSaved(true);
       toast({ title: "Profile updated", description: "Your changes have been saved" });
       setTimeout(() => setSaved(false), 2000);
