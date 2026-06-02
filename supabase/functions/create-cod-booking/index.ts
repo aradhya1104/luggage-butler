@@ -60,12 +60,12 @@ Deno.serve(async (req) => {
     // Date sanity
     const today = new Date(); today.setHours(0,0,0,0);
     const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
-    if (new Date(dropOffDate) < yesterday) {
-      return new Response(JSON.stringify({ error: 'Drop-off date cannot be in the past' }),
+    if (new Date(pickupDate) < yesterday) {
+      return new Response(JSON.stringify({ error: 'Pickup date cannot be in the past' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-    if (new Date(pickupDate) < new Date(dropOffDate)) {
-      return new Response(JSON.stringify({ error: 'Pickup date must be on or after drop-off date' }),
+    if (new Date(dropOffDate) < new Date(pickupDate)) {
+      return new Response(JSON.stringify({ error: 'Drop-off date must be on or after pickup date' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
