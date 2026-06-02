@@ -382,7 +382,20 @@ const Booking = () => {
           <p className="text-muted-foreground mb-8">Review your booking details before payment</p>
 
           {/* Customer Details Card */}
-          {userProfile && (
+          {loadingProfile && isAuthenticated && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Customer Details</CardTitle>
+                <CardDescription>Loading your saved contact information</CardDescription>
+              </CardHeader>
+              <CardContent className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading profile...
+              </CardContent>
+            </Card>
+          )}
+
+          {userProfile && !loadingProfile && (
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle>Customer Details</CardTitle>
@@ -529,7 +542,7 @@ const Booking = () => {
                 size="xl"
                 className="w-full"
                 onClick={handlePayment}
-                disabled={isLoading || isCodLoading || !hasPhone}
+                disabled={isLoading || isCodLoading || !profileReady || !hasPhone}
               >
                 {isLoading ? (
                   <>
@@ -556,7 +569,7 @@ const Booking = () => {
                 size="xl"
                 className="w-full"
                 onClick={handleCOD}
-                disabled={isLoading || isCodLoading || !hasPhone}
+                disabled={isLoading || isCodLoading || !profileReady || !hasPhone}
               >
                 {isCodLoading ? (
                   <>
@@ -571,7 +584,7 @@ const Booking = () => {
                 )}
               </Button>
 
-              {!hasPhone && (
+              {profileReady && !hasPhone && (
                 <p className="text-center text-sm text-destructive mt-2">
                   Please add your phone number above to proceed
                 </p>
