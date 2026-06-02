@@ -141,8 +141,11 @@ const Booking = () => {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ phone: trimmed })
-      .eq('user_id', session.user.id);
+      .upsert({
+        user_id: session.user.id,
+        full_name: userProfile?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || null,
+        phone: trimmed,
+      }, { onConflict: 'user_id' });
 
     if (error) {
       toast({
@@ -151,7 +154,11 @@ const Booking = () => {
         variant: "destructive",
       });
     } else {
-      setUserProfile(prev => prev ? { ...prev, phone: trimmed } : prev);
+      setUserProfile(prev => ({
+        full_name: prev?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || null,
+        phone: trimmed,
+        email: prev?.email || session.user.email || '',
+      }));
       toast({
         title: "Saved",
         description: "Phone number saved successfully",
@@ -188,6 +195,14 @@ const Booking = () => {
   };
 
   const validateBeforePayment = () => {
+    if (!profileReady) {
+      toast({
+        title: "Loading Profile",
+        description: "Please wait while we load your saved contact details.",
+      });
+      return false;
+    }
+
     if (!isAuthenticated) {
       toast({
         title: "Login Required",
