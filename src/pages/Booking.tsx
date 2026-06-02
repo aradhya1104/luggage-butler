@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 interface UserProfile {
   full_name: string | null;
@@ -57,7 +58,7 @@ const Booking = () => {
   const profileReady = !checkingAuth && !loadingProfile;
   const hasPhone = !!(userProfile?.phone?.trim());
 
-  const loadUserProfile = async (user: NonNullable<(Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"])["user"]>) => {
+  const loadUserProfile = async (user: SupabaseUser) => {
     setLoadingProfile(true);
     const { data: profile, error } = await supabase
       .from('profiles')
