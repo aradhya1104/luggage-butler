@@ -13,17 +13,23 @@ const Header = () => {
   const profileRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
+  const loadUserName = async (currentUser: SupabaseUser) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('user_id', currentUser.id)
+      .single();
+    setUserName(data?.full_name || null);
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setUser(session?.user ?? null);
         if (session?.user) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('user_id', session.user.id)
-            .single();
-          setUserName(data?.full_name || null);
+          window.setTimeout(() => {
+            void loadUserName(session.user);
+          }, 0);
         } else {
           setUserName(null);
         }
@@ -33,12 +39,7 @@ const Header = () => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('user_id', session.user.id)
-          .single();
-        setUserName(data?.full_name || null);
+        await loadUserName(session.user);
       }
     });
 
