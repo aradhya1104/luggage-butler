@@ -41,6 +41,7 @@ const Booking = () => {
   const [isCodLoading, setIsCodLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [phoneInput, setPhoneInput] = useState("");
   const [savingPhone, setSavingPhone] = useState(false);
@@ -53,7 +54,32 @@ const Booking = () => {
 
   const amount = getPrice(numberOfBags);
 
-  const hasPhone = !!(userProfile?.phone);
+  const profileReady = !checkingAuth && !loadingProfile;
+  const hasPhone = !!(userProfile?.phone?.trim());
+
+  const loadUserProfile = async (user: NonNullable<(Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"])["user"]>) => {
+    setLoadingProfile(true);
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('full_name, phone')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error loading booking profile:", error);
+    }
+
+    const fullName = profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || null;
+    const phone = profile?.phone || user.phone || null;
+
+    setUserProfile({
+      full_name: fullName,
+      phone,
+      email: user.email || '',
+    });
+    setPhoneInput(phone || "");
+    setLoadingProfile(false);
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -62,17 +88,9 @@ const Booking = () => {
       setCheckingAuth(false);
       
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, phone')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        setUserProfile({
-          full_name: profile?.full_name || null,
-          phone: profile?.phone || null,
-          email: session.user.email || '',
-        });
+        await loadUserProfile(session.user);
+      } else {
+        setLoadingProfile(false);
       }
     };
     checkAuth();
@@ -80,19 +98,11 @@ const Booking = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setIsAuthenticated(!!session);
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, phone')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        setUserProfile({
-          full_name: profile?.full_name || null,
-          phone: profile?.phone || null,
-          email: session.user.email || '',
-        });
+        await loadUserProfile(session.user);
       } else {
         setUserProfile(null);
+        setPhoneInput("");
+        setLoadingProfile(false);
       }
     });
 
