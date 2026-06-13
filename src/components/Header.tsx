@@ -132,6 +132,14 @@ const Header = () => {
                       My Profile
                     </a>
                     <a
+                      href="/my-bookings"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <Briefcase className="w-4 h-4 text-muted-foreground" />
+                      My Orders
+                    </a>
+                    <a
                       href="/booking"
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
                       onClick={() => setIsProfileOpen(false)}
