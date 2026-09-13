@@ -129,6 +129,7 @@ const Hero = () => {
                   value={deliveryLocation}
                   onChange={setDeliveryLocation}
                   optional
+                  showCurrentLocationButton
                 />
 
                 {/* Date Selection */}
