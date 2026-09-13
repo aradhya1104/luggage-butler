@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MapPin, Crosshair, Loader2, LocateFixed } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
 interface LocationInputProps {
@@ -29,14 +30,19 @@ const LocationInput = ({ label, placeholder, value, onChange, optional, showCurr
         const { latitude, longitude } = position.coords;
         
         try {
-          // Use reverse geocoding to get address
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          const { data, error } = await supabase.functions.invoke(
+            "reverse-geocode",
+            {
+              body: { latitude, longitude },
+            }
           );
-          const data = await response.json();
-          
-          if (data.display_name) {
-            onChange(data.display_name);
+
+          if (error) {
+            throw new Error(error.message || "Geocoding failed");
+          }
+
+          if (data?.address) {
+            onChange(data.address);
           } else {
             onChange(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
           }
@@ -44,6 +50,7 @@ const LocationInput = ({ label, placeholder, value, onChange, optional, showCurr
           // Fallback to coordinates if reverse geocoding fails
           onChange(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
         }
+        
         
         setIsDetecting(false);
       },

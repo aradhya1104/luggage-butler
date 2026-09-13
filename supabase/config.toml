@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.create-cod-booking]
 verify_jwt = false
+
+[functions.reverse-geocode]
+verify_jwt = false
