@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MapPin, Crosshair, Loader2, LocateFixed } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
 interface LocationInputProps {
