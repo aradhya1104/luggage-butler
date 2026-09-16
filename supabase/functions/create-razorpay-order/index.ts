@@ -25,6 +25,11 @@ const verifyPaymentSchema = z.object({
   razorpaySignature: z.string().min(1, "Signature is required"),
 });
 
+const failPaymentSchema = z.object({
+  razorpayOrderId: z.string().min(1, "Order ID is required"),
+  reason: z.string().max(200).optional().nullable(),
+});
+
 // Calculate price based on number of bags
 function calculatePrice(bags: number): number {
   if (bags <= 1) return 300;
@@ -49,11 +54,11 @@ function validateDates(dropOffDate: string, pickupDate: string): { valid: boolea
   const pickup = new Date(pickupDate);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   // Allow dates from yesterday (to handle timezone differences)
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  
+
   if (dropOff < yesterday) {
     return { valid: false, error: "Drop-off date cannot be in the past" };
   }
@@ -70,6 +75,8 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // User-scoped client: used ONLY to identify the caller and to create
+    // the caller's own booking (RLS enforced).
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -78,6 +85,15 @@ Deno.serve(async (req) => {
           headers: { Authorization: req.headers.get('Authorization')! },
         },
       }
+    );
+
+    // Service-role client: used ONLY for payment bookkeeping (payments rows
+    // and the paid flag on bookings). The browser has no write access to these
+    // — every write here happens after server-side signature verification.
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false, autoRefreshToken: false } }
     );
 
     // Get user from JWT
@@ -102,9 +118,9 @@ Deno.serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
+
       const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags } = parseResult.data;
-      
+
       // Validate date logic
       const dateValidation = validateDates(dropOffDate, pickupDate);
       if (!dateValidation.valid) {
@@ -113,11 +129,12 @@ Deno.serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
+
+      // Amount is ALWAYS derived server-side from the bag count.
       const amount = calculatePrice(numberOfBags);
       const trackingId = generateTrackingId();
 
-      // Create booking in database
+      // Create booking in database (as the user, RLS enforced)
       const { data: booking, error: bookingError } = await supabaseClient
         .from('bookings')
         .insert({
@@ -161,7 +178,7 @@ Deno.serve(async (req) => {
       });
 
       const razorpayOrder = await razorpayOrderResponse.json();
-      
+
       if (!razorpayOrderResponse.ok) {
         console.error('Razorpay error:', razorpayOrder);
         return new Response(
@@ -170,8 +187,8 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Store payment record
-      const { error: paymentError } = await supabaseClient
+      // Store payment record (service role — clients cannot write payments)
+      const { error: paymentError } = await supabaseAdmin
         .from('payments')
         .insert({
           booking_id: booking.id,
@@ -182,6 +199,10 @@ Deno.serve(async (req) => {
 
       if (paymentError) {
         console.error('Payment record error:', paymentError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to initialise payment' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       return new Response(
@@ -207,16 +228,16 @@ Deno.serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
+
       const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = parseResult.data;
 
       // SECURITY: Derive trusted bookingId from the payments record by razorpay_order_id.
       // Never trust a client-supplied bookingId — that allows marking unrelated bookings as paid.
-      const { data: paymentRecord, error: paymentLookupError } = await supabaseClient
+      const { data: paymentRecord, error: paymentLookupError } = await supabaseAdmin
         .from('payments')
-        .select('booking_id')
+        .select('booking_id, status, bookings!inner(user_id)')
         .eq('razorpay_order_id', razorpayOrderId)
-        .single();
+        .maybeSingle();
 
       if (paymentLookupError || !paymentRecord) {
         console.error('Payment lookup error:', paymentLookupError);
@@ -227,6 +248,29 @@ Deno.serve(async (req) => {
       }
       const bookingId = paymentRecord.booking_id;
 
+      // SECURITY: the caller must own the booking behind this order.
+      const ownerId = (paymentRecord as any).bookings?.user_id;
+      if (ownerId !== user.id) {
+        console.error('Ownership mismatch on verify-payment');
+        return new Response(
+          JSON.stringify({ error: 'Forbidden' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Idempotency: already verified → return current booking, do not re-run.
+      if (paymentRecord.status === 'success') {
+        const { data: existingBooking } = await supabaseAdmin
+          .from('bookings')
+          .select('*')
+          .eq('id', bookingId)
+          .single();
+        return new Response(
+          JSON.stringify({ success: true, alreadyVerified: true, booking: existingBooking }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // Verify signature using Web Crypto API
       const encoder = new TextEncoder();
       const key = await crypto.subtle.importKey(
@@ -236,14 +280,14 @@ Deno.serve(async (req) => {
         false,
         ["sign"]
       );
-      
+
       const message = `${razorpayOrderId}|${razorpayPaymentId}`;
       const signature = await crypto.subtle.sign(
         "HMAC",
         key,
         encoder.encode(message)
       );
-      
+
       const expectedSignature = Array.from(new Uint8Array(signature))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
@@ -251,14 +295,21 @@ Deno.serve(async (req) => {
       const isValid = expectedSignature === razorpaySignature;
 
       if (!isValid) {
+        // Record the failed attempt; booking stays unpaid.
+        await supabaseAdmin
+          .from('payments')
+          .update({ status: 'failed', razorpay_payment_id: razorpayPaymentId })
+          .eq('razorpay_order_id', razorpayOrderId)
+          .neq('status', 'success');
+
         return new Response(
           JSON.stringify({ error: 'Invalid payment signature' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Update payment status
-      const { error: updatePaymentError } = await supabaseClient
+      // Update payment status (service role)
+      const { error: updatePaymentError } = await supabaseAdmin
         .from('payments')
         .update({
           razorpay_payment_id: razorpayPaymentId,
@@ -269,10 +320,14 @@ Deno.serve(async (req) => {
 
       if (updatePaymentError) {
         console.error('Update payment error:', updatePaymentError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to record payment' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
-      // Update booking status
-      const { data: updatedBooking, error: updateBookingError } = await supabaseClient
+      // Update booking status ONLY after successful verification (service role)
+      const { data: updatedBooking, error: updateBookingError } = await supabaseAdmin
         .from('bookings')
         .update({ status: 'paid' })
         .eq('id', bookingId)
@@ -293,7 +348,7 @@ Deno.serve(async (req) => {
           .from('profiles')
           .select('full_name, phone')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
         fetch(GOOGLE_SCRIPT_URL, {
           method: 'POST',
           body: JSON.stringify({
@@ -312,10 +367,63 @@ Deno.serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          booking: updatedBooking 
+        JSON.stringify({
+          success: true,
+          booking: updatedBooking
         }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'payment-failed') {
+      // Records a failed or cancelled attempt. NEVER marks anything as paid.
+      const parseResult = failPaymentSchema.safeParse(data);
+      if (!parseResult.success) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid input' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const { razorpayOrderId, reason } = parseResult.data;
+
+      const { data: paymentRecord } = await supabaseAdmin
+        .from('payments')
+        .select('booking_id, status, bookings!inner(user_id)')
+        .eq('razorpay_order_id', razorpayOrderId)
+        .maybeSingle();
+
+      if (!paymentRecord || (paymentRecord as any).bookings?.user_id !== user.id) {
+        return new Response(
+          JSON.stringify({ error: 'Payment record not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Never downgrade a verified payment.
+      if (paymentRecord.status === 'success') {
+        return new Response(
+          JSON.stringify({ success: true, status: 'success' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('Payment marked failed:', razorpayOrderId, reason ?? '');
+      const { error: failError } = await supabaseAdmin
+        .from('payments')
+        .update({ status: 'failed' })
+        .eq('razorpay_order_id', razorpayOrderId)
+        .neq('status', 'success');
+
+      if (failError) {
+        console.error('Mark failed error:', failError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to record payment status' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, status: 'failed' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
