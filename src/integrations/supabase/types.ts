@@ -54,6 +54,7 @@ export type Database = {
           delivery_location: string | null
           drop_off_date: string
           id: string
+          idempotency_key: string | null
           number_of_bags: number
           pickup_date: string
           pickup_location: string
@@ -68,6 +69,7 @@ export type Database = {
           delivery_location?: string | null
           drop_off_date: string
           id?: string
+          idempotency_key?: string | null
           number_of_bags?: number
           pickup_date: string
           pickup_location: string
@@ -82,6 +84,7 @@ export type Database = {
           delivery_location?: string | null
           drop_off_date?: string
           id?: string
+          idempotency_key?: string | null
           number_of_bags?: number
           pickup_date?: string
           pickup_location?: string
@@ -89,6 +92,36 @@ export type Database = {
           tracking_id?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      payment_webhook_events: {
+        Row: {
+          created_at: string
+          event_id: string
+          event_type: string
+          id: string
+          processed_at: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          event_type: string
+          id?: string
+          processed_at?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          event_type?: string
+          id?: string
+          processed_at?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
         }
         Relationships: []
       }
