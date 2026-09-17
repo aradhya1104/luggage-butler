@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags } = parseResult.data;
+      const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags, idempotencyKey } = parseResult.data;
 
       // Validate date logic
       const dateValidation = validateDates(dropOffDate, pickupDate);
@@ -134,26 +134,160 @@ Deno.serve(async (req) => {
 
       // Amount is ALWAYS derived server-side from the bag count.
       const amount = calculatePrice(numberOfBags);
-      const trackingId = generateTrackingId();
 
-      // Create booking in database (as the user, RLS enforced)
-      const { data: booking, error: bookingError } = await supabaseClient
-        .from('bookings')
-        .insert({
-          user_id: user.id,
-          pickup_location: pickupLocation,
-          delivery_location: deliveryLocation,
-          drop_off_date: dropOffDate,
-          pickup_date: pickupDate,
-          number_of_bags: numberOfBags,
-          amount: amount,
-          tracking_id: trackingId,
-          status: 'pending'
-        })
-        .select()
-        .single();
+      // ---- SERVER-SIDE IDEMPOTENCY -------------------------------------
+      // Repeated Pay clicks for the same checkout attempt carry the same
+      // idempotencyKey. We reuse the existing booking + Razorpay order
+      // instead of creating duplicates.
+      if (idempotencyKey) {
+        const { data: existing } = await supabaseAdmin
+          .from('bookings')
+          .select('id, status, tracking_id, amount')
+          .eq('user_id', user.id)
+          .eq('idempotency_key', idempotencyKey)
+          .maybeSingle();
 
-      if (bookingError) {
+        if (existing) {
+          if (existing.status === 'paid' || existing.status === 'completed') {
+            return new Response(
+              JSON.stringify({ alreadyPaid: true, bookingId: existing.id, trackingId: existing.tracking_id }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          const { data: existingPayment } = await supabaseAdmin
+            .from('payments')
+            .select('razorpay_order_id, status')
+            .eq('booking_id', existing.id)
+            .neq('status', 'failed')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (existingPayment?.razorpay_order_id) {
+            // Confirm the order is still payable at Razorpay before reusing it.
+            const check = await fetch(`https://api.razorpay.com/v1/orders/${existingPayment.razorpay_order_id}`, {
+              headers: { 'Authorization': 'Basic ' + btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`) },
+            });
+            const checkOrder = await check.json().catch(() => null);
+            if (check.ok && checkOrder?.status === 'created') {
+              return new Response(
+                JSON.stringify({
+                  orderId: existingPayment.razorpay_order_id,
+                  bookingId: existing.id,
+                  amount: existing.amount,
+                  currency: 'INR',
+                  keyId: RAZORPAY_KEY_ID,
+                  trackingId: existing.tracking_id,
+                  reused: true,
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+          }
+
+          // Booking exists but has no payable order → create a fresh order for it.
+          const retryOrder = await createRazorpayOrder(existing.amount, existing.id, existing.tracking_id ?? '');
+          if (!retryOrder.ok) {
+            return new Response(
+              JSON.stringify({ error: 'Failed to create payment order' }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          const { error: retryPaymentError } = await supabaseAdmin
+            .from('payments')
+            .insert({
+              booking_id: existing.id,
+              razorpay_order_id: retryOrder.order.id,
+              amount: existing.amount,
+              status: 'pending',
+            });
+          if (retryPaymentError) {
+            console.error('Payment record error (retry):', retryPaymentError);
+            return new Response(
+              JSON.stringify({ error: 'Failed to initialise payment' }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          return new Response(
+            JSON.stringify({
+              orderId: retryOrder.order.id,
+              bookingId: existing.id,
+              amount: existing.amount,
+              currency: 'INR',
+              keyId: RAZORPAY_KEY_ID,
+              trackingId: existing.tracking_id,
+              reused: true,
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+
+      // Create booking (as the user, RLS enforced) with a unique tracking id.
+      // The DB enforces tracking-id uniqueness; retry on collision.
+      let booking: any = null;
+      let trackingId = '';
+      for (let attempt = 0; attempt < 5; attempt++) {
+        trackingId = generateTrackingId();
+        const { data: inserted, error: bookingError } = await supabaseClient
+          .from('bookings')
+          .insert({
+            user_id: user.id,
+            pickup_location: pickupLocation,
+            delivery_location: deliveryLocation,
+            drop_off_date: dropOffDate,
+            pickup_date: pickupDate,
+            number_of_bags: numberOfBags,
+            amount: amount,
+            tracking_id: trackingId,
+            status: 'pending',
+            idempotency_key: idempotencyKey ?? null,
+          })
+          .select()
+          .single();
+
+        if (!bookingError) {
+          booking = inserted;
+          break;
+        }
+
+        // Duplicate idempotency key → a concurrent request already created it.
+        if ((bookingError as any).code === '23505' && String((bookingError as any).message ?? '').includes('idempotency')) {
+          const { data: concurrent } = await supabaseAdmin
+            .from('bookings')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('idempotency_key', idempotencyKey!)
+            .maybeSingle();
+          if (concurrent) {
+            const { data: concurrentPayment } = await supabaseAdmin
+              .from('payments')
+              .select('razorpay_order_id')
+              .eq('booking_id', concurrent.id)
+              .neq('status', 'failed')
+              .limit(1)
+              .maybeSingle();
+            if (concurrentPayment?.razorpay_order_id) {
+              return new Response(
+                JSON.stringify({
+                  orderId: concurrentPayment.razorpay_order_id,
+                  bookingId: concurrent.id,
+                  amount: concurrent.amount,
+                  currency: 'INR',
+                  keyId: RAZORPAY_KEY_ID,
+                  trackingId: concurrent.tracking_id,
+                  reused: true,
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+          }
+        }
+
+        // Tracking id collision → loop and try another id.
+        if ((bookingError as any).code === '23505') continue;
+
         console.error('Booking error:', bookingError);
         return new Response(
           JSON.stringify({ error: 'Failed to create booking' }),
@@ -161,33 +295,23 @@ Deno.serve(async (req) => {
         );
       }
 
+      if (!booking) {
+        return new Response(
+          JSON.stringify({ error: 'Failed to create booking' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // Create Razorpay order
-      const razorpayOrderResponse = await fetch('https://api.razorpay.com/v1/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`),
-        },
-        body: JSON.stringify({
-          amount: amount * 100, // Razorpay expects amount in paise
-          currency: 'INR',
-          receipt: booking.id,
-          notes: {
-            booking_id: booking.id,
-            tracking_id: trackingId,
-          }
-        }),
-      });
-
-      const razorpayOrder = await razorpayOrderResponse.json();
-
-      if (!razorpayOrderResponse.ok) {
-        console.error('Razorpay error:', razorpayOrder);
+      const created = await createRazorpayOrder(amount, booking.id, trackingId);
+      if (!created.ok) {
+        console.error('Razorpay error:', created.order);
         return new Response(
           JSON.stringify({ error: 'Failed to create payment order' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      const razorpayOrder = created.order;
 
       // Store payment record (service role — clients cannot write payments)
       const { error: paymentError } = await supabaseAdmin
