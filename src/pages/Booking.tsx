@@ -299,7 +299,7 @@ const Booking = () => {
         key: data.keyId,
         amount: data.amount * 100,
         currency: data.currency,
-        name: "LuggageStore",
+        name: "Luggo",
         description: `Luggage Storage - ${numberOfBags} bag(s)`,
         order_id: data.orderId,
         handler: async (response: any) => {
@@ -351,6 +351,17 @@ const Booking = () => {
         modal: {
           ondismiss: () => {
             setIsLoading(false);
+            supabase.functions.invoke("create-razorpay-order", {
+              body: {
+                action: "payment-failed",
+                razorpayOrderId: data.orderId,
+                reason: "cancelled_by_user",
+              },
+            }).catch(() => {});
+            toast({
+              title: "Payment Cancelled",
+              description: "Your booking is saved as unpaid. You can try paying again.",
+            });
           },
         },
       };
