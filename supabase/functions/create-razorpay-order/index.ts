@@ -17,7 +17,9 @@ const createOrderSchema = z.object({
   dropOffDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
   pickupDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
   numberOfBags: z.number().int("Number of bags must be an integer").min(1, "At least 1 bag required").max(10, "Maximum 10 bags allowed"),
+  idempotencyKey: z.string().min(8).max(100).optional().nullable(),
 });
+
 
 const verifyPaymentSchema = z.object({
   razorpayOrderId: z.string().min(1, "Order ID is required"),
