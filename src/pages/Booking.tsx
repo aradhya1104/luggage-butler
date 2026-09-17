@@ -299,7 +299,7 @@ const Booking = () => {
         key: data.keyId,
         amount: data.amount * 100,
         currency: data.currency,
-        name: "LuggageStore",
+        name: "Luggo",
         description: `Luggage Storage - ${numberOfBags} bag(s)`,
         order_id: data.orderId,
         handler: async (response: any) => {
@@ -351,11 +351,37 @@ const Booking = () => {
         modal: {
           ondismiss: () => {
             setIsLoading(false);
+            supabase.functions.invoke("create-razorpay-order", {
+              body: {
+                action: "payment-failed",
+                razorpayOrderId: data.orderId,
+                reason: "cancelled_by_user",
+              },
+            }).catch(() => {});
+            toast({
+              title: "Payment Cancelled",
+              description: "Your booking is saved as unpaid. You can try paying again.",
+            });
           },
         },
       };
 
       const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (resp: any) => {
+        setIsLoading(false);
+        supabase.functions.invoke("create-razorpay-order", {
+          body: {
+            action: "payment-failed",
+            razorpayOrderId: resp?.error?.metadata?.order_id || data.orderId,
+            reason: String(resp?.error?.description || "payment_failed").slice(0, 200),
+          },
+        }).catch(() => {});
+        toast({
+          title: "Payment Failed",
+          description: resp?.error?.description || "Your payment could not be completed. Please try again.",
+          variant: "destructive",
+        });
+      });
       rzp.open();
     } catch (error) {
       console.error("Payment error:", error);
