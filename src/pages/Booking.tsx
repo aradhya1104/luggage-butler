@@ -276,10 +276,32 @@ const Booking = () => {
     }
   };
 
+  const reportFailure = (orderId: string, reason: string) => {
+    supabase.functions
+      .invoke("create-razorpay-order", {
+        body: {
+          action: "payment-failed",
+          razorpayOrderId: orderId,
+          reason: reason.slice(0, 200),
+        },
+      })
+      .catch(() => {});
+  };
+
   const handlePayment = async () => {
     if (!validateBeforePayment()) return;
+    // Frontend guard (server-side idempotency is the real protection).
+    if (isLoading || paymentInFlight.current) return;
+    paymentInFlight.current = true;
 
     setIsLoading(true);
+
+    // One key per checkout attempt: repeated clicks reuse the same booking/order.
+    if (!attemptKeyRef.current) {
+      attemptKeyRef.current =
+        (crypto as any)?.randomUUID?.() ??
+        `att-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke("create-razorpay-order", {
@@ -290,10 +312,25 @@ const Booking = () => {
           dropOffDate,
           pickupDate,
           numberOfBags,
+          idempotencyKey: attemptKeyRef.current,
         },
       });
 
       if (error) throw error;
+
+      // Already paid for this attempt — go straight to the receipt.
+      if (data?.alreadyPaid) {
+        toast({ title: "Already Paid", description: "This booking is already confirmed." });
+        setIsLoading(false);
+        paymentInFlight.current = false;
+        navigate(`/receipt/${data.bookingId}`);
+        return;
+      }
+
+      const settle = () => {
+        setIsLoading(false);
+        paymentInFlight.current = false;
+      };
 
       const options = {
         key: data.keyId,
@@ -302,6 +339,9 @@ const Booking = () => {
         name: "Luggo",
         description: `Luggage Storage - ${numberOfBags} bag(s)`,
         order_id: data.orderId,
+        // Razorpay closes checkout after this many seconds of inactivity;
+        // ondismiss then records the attempt as failed.
+        timeout: 900,
         handler: async (response: any) => {
           try {
             const verifyResult = await supabase.functions.invoke("create-razorpay-order", {
@@ -310,11 +350,14 @@ const Booking = () => {
                 razorpayOrderId: response.razorpay_order_id,
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpaySignature: response.razorpay_signature,
-                bookingId: data.bookingId,
               },
             });
 
             if (verifyResult.error) throw verifyResult.error;
+
+            // Attempt completed — a new checkout gets a fresh key.
+            attemptKeyRef.current = null;
+            settle();
 
             toast({
               title: "Payment Successful!",
@@ -334,9 +377,11 @@ const Booking = () => {
             navigate(`/receipt/${data.bookingId}`);
           } catch (err) {
             console.error("Verification error:", err);
+            settle();
             toast({
-              title: "Payment Verification Failed",
-              description: "Please contact support",
+              title: "Payment Verification Pending",
+              description:
+                "We received your payment but couldn't confirm it instantly. It will be confirmed automatically — check My Orders in a minute.",
               variant: "destructive",
             });
           }
@@ -350,14 +395,8 @@ const Booking = () => {
         },
         modal: {
           ondismiss: () => {
-            setIsLoading(false);
-            supabase.functions.invoke("create-razorpay-order", {
-              body: {
-                action: "payment-failed",
-                razorpayOrderId: data.orderId,
-                reason: "cancelled_by_user",
-              },
-            }).catch(() => {});
+            settle();
+            reportFailure(data.orderId, "cancelled_by_user");
             toast({
               title: "Payment Cancelled",
               description: "Your booking is saved as unpaid. You can try paying again.",
@@ -368,14 +407,11 @@ const Booking = () => {
 
       const rzp = new window.Razorpay(options);
       rzp.on("payment.failed", (resp: any) => {
-        setIsLoading(false);
-        supabase.functions.invoke("create-razorpay-order", {
-          body: {
-            action: "payment-failed",
-            razorpayOrderId: resp?.error?.metadata?.order_id || data.orderId,
-            reason: String(resp?.error?.description || "payment_failed").slice(0, 200),
-          },
-        }).catch(() => {});
+        settle();
+        reportFailure(
+          resp?.error?.metadata?.order_id || data.orderId,
+          String(resp?.error?.description || "payment_failed"),
+        );
         toast({
           title: "Payment Failed",
           description: resp?.error?.description || "Your payment could not be completed. Please try again.",
@@ -383,17 +419,20 @@ const Booking = () => {
         });
       });
       rzp.open();
+      // NOTE: isLoading stays true while checkout is open so the Pay button
+      // cannot be clicked again; settle() clears it on every outcome.
     } catch (error) {
       console.error("Payment error:", error);
+      setIsLoading(false);
+      paymentInFlight.current = false;
       toast({
         title: "Error",
         description: "Failed to initiate payment. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background">
