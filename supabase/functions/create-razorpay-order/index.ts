@@ -50,6 +50,30 @@ function generateTrackingId(): string {
   return result;
 }
 
+// Create a Razorpay order (amount in rupees). Returns ok + parsed order.
+async function createRazorpayOrder(
+  amountRupees: number,
+  bookingId: string,
+  trackingId: string,
+): Promise<{ ok: boolean; order: any }> {
+  const res = await fetch('https://api.razorpay.com/v1/orders', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Basic ' + btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`),
+    },
+    body: JSON.stringify({
+      amount: amountRupees * 100, // paise
+      currency: 'INR',
+      receipt: bookingId,
+      notes: { booking_id: bookingId, tracking_id: trackingId },
+    }),
+  });
+  const order = await res.json().catch(() => null);
+  return { ok: res.ok, order };
+}
+
+
 // Validate dates are logical (dropOff <= pickup and both not in distant past)
 function validateDates(dropOffDate: string, pickupDate: string): { valid: boolean; error?: string } {
   const dropOff = new Date(dropOffDate);
