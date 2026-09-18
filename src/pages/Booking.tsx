@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -46,6 +46,9 @@ const Booking = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [phoneInput, setPhoneInput] = useState("");
   const [savingPhone, setSavingPhone] = useState(false);
+  // Guards against double-submits and keeps one idempotency key per attempt.
+  const paymentInFlight = useRef(false);
+  const attemptKeyRef = useRef<string | null>(null);
 
   const pickupLocation = searchParams.get("pickup") || "";
   const deliveryLocation = searchParams.get("delivery") || "";
