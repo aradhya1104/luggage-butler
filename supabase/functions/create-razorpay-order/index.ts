@@ -6,8 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const RAZORPAY_KEY_ID = Deno.env.get('RAZORPAY_KEY_ID')!;
-const RAZORPAY_KEY_SECRET = Deno.env.get('RAZORPAY_KEY_SECRET')!;
+const RAZORPAY_KEY_ID = (Deno.env.get('RAZORPAY_KEY_ID') ?? '').trim();
+const RAZORPAY_KEY_SECRET = (Deno.env.get('RAZORPAY_KEY_SECRET') ?? '').trim();
 const GOOGLE_SCRIPT_URL = Deno.env.get('GOOGLE_SHEET_WEBHOOK_URL') ?? '';
 
 // Input validation schemas
