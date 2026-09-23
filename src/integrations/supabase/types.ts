@@ -50,6 +50,7 @@ export type Database = {
       bookings: {
         Row: {
           amount: number
+          assigned_partner_id: string | null
           created_at: string
           delivery_location: string | null
           delivery_time: string | null
@@ -67,6 +68,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          assigned_partner_id?: string | null
           created_at?: string
           delivery_location?: string | null
           delivery_time?: string | null
@@ -84,6 +86,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          assigned_partner_id?: string | null
           created_at?: string
           delivery_location?: string | null
           delivery_time?: string | null
@@ -99,7 +102,119 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_assigned_partner_id_fkey"
+            columns: ["assigned_partner_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_partners: {
+        Row: {
+          account_status: string
+          address: string | null
+          availability_status: string
+          completed_jobs: number
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          joined_at: string
+          mobile: string
+          partner_code: string
+          photo_path: string | null
+          total_deliveries: number
+          total_pickups: number
+          updated_at: string
+          user_id: string
+          vehicle_number: string
+          vehicle_type: string
+          verification_status: string
+        }
+        Insert: {
+          account_status?: string
+          address?: string | null
+          availability_status?: string
+          completed_jobs?: number
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          joined_at?: string
+          mobile: string
+          partner_code: string
+          photo_path?: string | null
+          total_deliveries?: number
+          total_pickups?: number
+          updated_at?: string
+          user_id: string
+          vehicle_number: string
+          vehicle_type: string
+          verification_status?: string
+        }
+        Update: {
+          account_status?: string
+          address?: string | null
+          availability_status?: string
+          completed_jobs?: number
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          joined_at?: string
+          mobile?: string
+          partner_code?: string
+          photo_path?: string | null
+          total_deliveries?: number
+          total_pickups?: number
+          updated_at?: string
+          user_id?: string
+          vehicle_number?: string
+          vehicle_type?: string
+          verification_status?: string
+        }
         Relationships: []
+      }
+      partner_documents: {
+        Row: {
+          created_at: string
+          doc_type: string
+          file_path: string
+          id: string
+          partner_id: string
+          review_status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doc_type: string
+          file_path: string
+          id?: string
+          partner_id: string
+          review_status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doc_type?: string
+          file_path?: string
+          id?: string
+          partner_id?: string
+          review_status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_documents_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_partners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_webhook_events: {
         Row: {
@@ -239,6 +354,17 @@ export type Database = {
           tracking_id: string
         }[]
       }
+      get_booking_partner: {
+        Args: { p_booking_id: string }
+        Returns: {
+          full_name: string
+          mobile: string
+          partner_code: string
+          photo_path: string
+          vehicle_number: string
+          vehicle_type: string
+        }[]
+      }
       get_user_emails: {
         Args: { _user_ids: string[] }
         Returns: {
@@ -253,6 +379,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user" | "super_admin"
