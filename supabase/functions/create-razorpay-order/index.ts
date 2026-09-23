@@ -18,6 +18,8 @@ const createOrderSchema = z.object({
   pickupDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
   numberOfBags: z.number().int("Number of bags must be an integer").min(1, "At least 1 bag required").max(10, "Maximum 10 bags allowed"),
   idempotencyKey: z.string().min(8).max(100).optional().nullable(),
+  pickupTime: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional().nullable(),
+  deliveryTime: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional().nullable(),
 });
 
 
@@ -145,7 +147,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags, idempotencyKey } = parseResult.data;
+      const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags, idempotencyKey, pickupTime, deliveryTime } = parseResult.data;
 
       // Validate date logic
       const dateValidation = validateDates(dropOffDate, pickupDate);
@@ -263,6 +265,8 @@ Deno.serve(async (req) => {
             drop_off_date: dropOffDate,
             pickup_date: pickupDate,
             number_of_bags: numberOfBags,
+            pickup_time: pickupTime || null,
+            delivery_time: deliveryTime || null,
             amount: amount,
             tracking_id: trackingId,
             status: 'pending',

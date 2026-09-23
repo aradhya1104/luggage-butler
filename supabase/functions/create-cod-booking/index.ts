@@ -14,6 +14,8 @@ const schema = z.object({
   dropOffDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   pickupDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   numberOfBags: z.number().int().min(1).max(10),
+  pickupTime: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+  deliveryTime: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
 });
 
 function calculatePrice(bags: number): number {
@@ -55,7 +57,7 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags } = parsed.data;
+    const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags, pickupTime, deliveryTime } = parsed.data;
 
     // Date sanity
     const today = new Date(); today.setHours(0,0,0,0);
@@ -81,6 +83,8 @@ Deno.serve(async (req) => {
         drop_off_date: dropOffDate,
         pickup_date: pickupDate,
         number_of_bags: numberOfBags,
+        pickup_time: pickupTime || null,
+        delivery_time: deliveryTime || null,
         amount,
         tracking_id: trackingId,
         status: 'cod_pending',

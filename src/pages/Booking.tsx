@@ -55,6 +55,8 @@ const Booking = () => {
   const dropOffDate = searchParams.get("dropOff") || "";
   const pickupDate = searchParams.get("pickupDate") || "";
   const numberOfBags = parseInt(searchParams.get("bags") || "1");
+  const pickupTime = searchParams.get("pickupTime") || "";
+  const deliveryTime = searchParams.get("deliveryTime") || "";
 
   const amount = getPrice(numberOfBags);
 
@@ -194,6 +196,8 @@ const Booking = () => {
       `${deliveryLocation ? `🏠 Delivery: ${deliveryLocation}\n` : ''}` +
       `📅 Drop-off: ${dropOffDate}\n` +
       `📅 Pickup: ${pickupDate}\n` +
+      `${pickupTime ? `🕐 Pickup Time: ${pickupTime}\n` : ''}` +
+      `${deliveryTime ? `🕐 Delivery Time: ${deliveryTime}\n` : ''}` +
       `🧳 Bags: ${numberOfBags}\n` +
       `💰 Amount: ₹${amount}\n\n` +
       `Track your luggage at: ${window.location.origin}/track?id=${trackingId}`
@@ -254,6 +258,8 @@ const Booking = () => {
           dropOffDate,
           pickupDate,
           numberOfBags,
+          pickupTime: pickupTime || null,
+          deliveryTime: deliveryTime || null,
         },
       });
 
@@ -315,6 +321,8 @@ const Booking = () => {
           dropOffDate,
           pickupDate,
           numberOfBags,
+          pickupTime: pickupTime || null,
+          deliveryTime: deliveryTime || null,
           idempotencyKey: attemptKeyRef.current,
         },
       });
@@ -564,11 +572,17 @@ const Booking = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Pickup Date</p>
-                      <p className="font-medium">{pickupDate || "Not specified"}</p>
+                      <p className="font-medium">
+                        {pickupDate || "Not specified"}
+                        {pickupTime ? `, ${pickupTime}` : ""}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Drop-off Date</p>
-                      <p className="font-medium">{dropOffDate || "Not specified"}</p>
+                      <p className="font-medium">
+                        {dropOffDate || "Not specified"}
+                        {deliveryTime ? `, ${deliveryTime}` : ""}
+                      </p>
                     </div>
                   </div>
                 </div>

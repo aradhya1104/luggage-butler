@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Calendar, ArrowRight, Shield, Clock, Truck } from "lucide-react";
+import { Calendar, ArrowRight, Shield, Clock, Truck } from "lucide-react"; // Clock used for time inputs
 import heroImage from "@/assets/hero-luggage.jpg";
 import LocationInput from "./LocationInput";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,8 @@ const Hero = () => {
   const [dropOffDate, setDropOffDate] = useState("");
   const [pickupDate, setPickupDate] = useState("");
   const [numberOfBags, setNumberOfBags] = useState("1");
+  const [pickupTime, setPickupTime] = useState("");
+  const [deliveryTime, setDeliveryTime] = useState("");
 
   const handleGetQuote = () => {
     if (!pickupLocation.trim() || !pickupDate || !dropOffDate) {
@@ -30,6 +32,8 @@ const Hero = () => {
       dropOff: dropOffDate,
       pickupDate: pickupDate,
       bags: numberOfBags.replace(/\D/g, "") || "1",
+      pickupTime,
+      deliveryTime,
     });
     navigate(`/booking?${params.toString()}`);
   };
@@ -169,6 +173,34 @@ const Hero = () => {
                           if (val && val < minDate) return;
                           setDropOffDate(val);
                         }}
+                        className="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Time Selection */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Pickup Time</label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <input
+                        type="time"
+                        value={pickupTime}
+                        onChange={(e) => setPickupTime(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Delivery Time</label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <input
+                        type="time"
+                        value={deliveryTime}
+                        onChange={(e) => setDeliveryTime(e.target.value)}
                         className="w-full pl-11 pr-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
                       />
                     </div>
