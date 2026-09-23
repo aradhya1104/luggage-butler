@@ -14,6 +14,8 @@ const Hero = () => {
   const [dropOffDate, setDropOffDate] = useState("");
   const [pickupDate, setPickupDate] = useState("");
   const [numberOfBags, setNumberOfBags] = useState("1");
+  const [pickupTime, setPickupTime] = useState("");
+  const [deliveryTime, setDeliveryTime] = useState("");
 
   const handleGetQuote = () => {
     if (!pickupLocation.trim() || !pickupDate || !dropOffDate) {
@@ -30,6 +32,8 @@ const Hero = () => {
       dropOff: dropOffDate,
       pickupDate: pickupDate,
       bags: numberOfBags.replace(/\D/g, "") || "1",
+      pickupTime,
+      deliveryTime,
     });
     navigate(`/booking?${params.toString()}`);
   };
