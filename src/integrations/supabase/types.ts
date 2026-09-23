@@ -52,12 +52,14 @@ export type Database = {
           amount: number
           created_at: string
           delivery_location: string | null
+          delivery_time: string | null
           drop_off_date: string
           id: string
           idempotency_key: string | null
           number_of_bags: number
           pickup_date: string
           pickup_location: string
+          pickup_time: string | null
           status: string
           tracking_id: string | null
           updated_at: string
@@ -67,12 +69,14 @@ export type Database = {
           amount: number
           created_at?: string
           delivery_location?: string | null
+          delivery_time?: string | null
           drop_off_date: string
           id?: string
           idempotency_key?: string | null
           number_of_bags?: number
           pickup_date: string
           pickup_location: string
+          pickup_time?: string | null
           status?: string
           tracking_id?: string | null
           updated_at?: string
@@ -82,12 +86,14 @@ export type Database = {
           amount?: number
           created_at?: string
           delivery_location?: string | null
+          delivery_time?: string | null
           drop_off_date?: string
           id?: string
           idempotency_key?: string | null
           number_of_bags?: number
           pickup_date?: string
           pickup_location?: string
+          pickup_time?: string | null
           status?: string
           tracking_id?: string | null
           updated_at?: string
