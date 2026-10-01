@@ -24,6 +24,8 @@ import { Luggage, LogOut, Package, Clock, CheckCircle, Truck, RefreshCw, UserPlu
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
+import AdminPartners from "@/components/AdminPartners";
+import AssignPartnerSelect from "@/components/AssignPartnerSelect";
 
 interface Booking {
   id: string;
@@ -37,6 +39,7 @@ interface Booking {
   tracking_id: string | null;
   created_at: string;
   user_id: string;
+  assigned_partner_id?: string | null;
   customer_name?: string | null;
   customer_phone?: string | null;
   customer_email?: string | null;
@@ -393,6 +396,14 @@ const AdminDashboard = () => {
                       {isOpen && (
                         <TableRow className="bg-muted/30 hover:bg-muted/30">
                           <TableCell colSpan={10} className="p-6">
+                            <div className="mb-4 flex items-center gap-3 flex-wrap text-sm">
+                              <span className="font-semibold text-foreground flex items-center gap-2"><Truck className="w-4 h-4" /> Delivery partner</span>
+                              <AssignPartnerSelect
+                                bookingId={booking.id}
+                                currentPartnerId={booking.assigned_partner_id ?? null}
+                                onChange={(pid) => setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, assigned_partner_id: pid } : b))}
+                              />
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                               <div>
                                 <div className="font-semibold text-foreground mb-2 flex items-center gap-2"><UserIcon className="w-4 h-4" /> Customer</div>
@@ -474,6 +485,7 @@ const AdminDashboard = () => {
                   </Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="partners">Partners</TabsTrigger>
             </TabsList>
 
             <TabsContent value="orders">
@@ -595,6 +607,10 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="partners">
+              <AdminPartners />
+            </TabsContent>
           </Tabs>
         ) : (
           <>
@@ -643,6 +659,7 @@ const AdminDashboard = () => {
             </div>
 
             {renderOrdersCard()}
+            <div className="mt-8"><AdminPartners /></div>
           </>
         )}
       </main>

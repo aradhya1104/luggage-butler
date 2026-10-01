@@ -140,6 +140,14 @@ const Header = () => {
                       My Orders
                     </a>
                     <a
+                      href="/partner"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <Luggage className="w-4 h-4 text-muted-foreground" />
+                      Partner Portal
+                    </a>
+                    <a
                       href="/booking"
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
                       onClick={() => setIsProfileOpen(false)}

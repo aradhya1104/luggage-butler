@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Package, MapPin, Calendar, Loader2, Luggage } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
+import AssignedPartnerCard from "@/components/AssignedPartnerCard";
 
 interface Booking {
   id: string;
@@ -18,6 +19,7 @@ interface Booking {
   status: string;
   tracking_id: string | null;
   created_at: string;
+  assigned_partner_id: string | null;
 }
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -150,6 +152,7 @@ const MyBookings = () => {
                         </Button>
                       )}
                     </div>
+                    {booking.assigned_partner_id && <AssignedPartnerCard bookingId={booking.id} />}
                   </CardContent>
                 </Card>
               );
