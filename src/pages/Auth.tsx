@@ -327,6 +327,13 @@ const Auth = () => {
               >
                 Login as Admin
               </a>
+
+              <a
+                href="/partner"
+                className="block text-sm text-primary hover:underline"
+              >
+                Login as Delivery Partner
+              </a>
             </div>
           </CardContent>
         </Card>
