@@ -61,6 +61,12 @@ const AdminPartners = () => {
     if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener");
   };
 
+  const openPhoto = async (path: string | null) => {
+    if (!path) return;
+    const { data } = await supabase.storage.from("partner-photos").createSignedUrl(path, 300);
+    if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener");
+  };
+
   const reviewDoc = async (partnerId: string, docId: string, review_status: string) => {
     const { error } = await supabase.from("partner_documents").update({ review_status }).eq("id", docId);
     if (!error) setDocs((d) => ({ ...d, [partnerId]: d[partnerId].map((x) => (x.id === docId ? { ...x, review_status } : x)) }));
@@ -132,10 +138,40 @@ const AdminPartners = () => {
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableCell colSpan={8} className="p-5">
                         <div className="grid md:grid-cols-2 gap-6 text-sm">
-                          <div className="space-y-1">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-16 w-16">
+                                {photos[p.id] && <AvatarImage src={photos[p.id]} />}
+                                <AvatarFallback className="text-xl">{p.full_name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">Profile photo</div>
+                                {p.photo_path ? (
+                                  <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => openPhoto(p.photo_path)}>View full size</Button>
+                                ) : (
+                                  <span className="text-muted-foreground">Not uploaded</span>
+                                )}
+                              </div>
+                            </div>
                             <div><span className="font-medium">Email:</span> {p.email || "—"}</div>
                             <div><span className="font-medium">Address:</span> {p.address || "—"}</div>
                             <div><span className="font-medium">Joined:</span> {format(new Date(p.joined_at), "dd MMM yyyy")}</div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium">Aadhaar:</span>
+                              {(() => {
+                                const aadhaar = (docs[p.id] ?? []).find((d) => d.doc_type === "aadhaar");
+                                return aadhaar ? (
+                                  <>
+                                    <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => openDoc(aadhaar.file_path)}>
+                                      <FileText className="w-4 h-4 mr-1" /> View
+                                    </Button>
+                                    <StatusSelect value={aadhaar.review_status} options={["pending", "approved", "rejected"]} onChange={(v) => reviewDoc(p.id, aadhaar.id, v)} />
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground">Not uploaded</span>
+                                );
+                              })()}
+                            </div>
                           </div>
                           <div>
                             <div className="font-medium mb-2">Verification documents</div>
