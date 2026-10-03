@@ -164,7 +164,10 @@ const PartnerPortal = () => {
           <Card>
             <CardContent className="py-10 text-center space-y-4">
               <p className="text-muted-foreground">Sign in to register as a Luggo delivery partner or view your partner profile.</p>
-              <Button onClick={() => navigate("/auth")}>Sign in</Button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button onClick={() => navigate("/auth")}>Sign in</Button>
+                <Button variant="outline" onClick={() => navigate("/auth?mode=signup")}>Create account</Button>
+              </div>
             </CardContent>
           </Card>
         ) : !partner ? (
