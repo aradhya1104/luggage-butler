@@ -403,11 +403,17 @@ const AdminDashboard = () => {
                           <TableCell colSpan={10} className="p-6">
                             <div className="mb-4 flex items-center gap-3 flex-wrap text-sm">
                               <span className="font-semibold text-foreground flex items-center gap-2"><Truck className="w-4 h-4" /> Delivery partner</span>
-                              <AssignPartnerSelect
-                                bookingId={booking.id}
-                                currentPartnerId={booking.assigned_partner_id ?? null}
-                                onChange={(pid) => setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, assigned_partner_id: pid } : b))}
-                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => { e.stopPropagation(); setDispatchBooking(booking); }}
+                              >
+                                <Send className="w-4 h-4 mr-1" />
+                                Dispatch
+                              </Button>
+                              <span className="text-xs text-muted-foreground">
+                                {booking.assigned_partner_id ? "Partner assigned — use Dispatch to change or remove." : "No partner assigned yet."}
+                              </span>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                               <div>
