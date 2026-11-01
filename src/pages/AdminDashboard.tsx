@@ -60,6 +60,7 @@ interface AdminRequest {
 const statusOptions = [
   { value: "pending", label: "Pending", icon: Clock, color: "bg-yellow-500" },
   { value: "paid", label: "Paid", icon: CheckCircle, color: "bg-blue-500" },
+  { value: "in_storage", label: "In Storage", icon: Warehouse, color: "bg-amber-500" },
   { value: "in_transit", label: "In Transit", icon: Truck, color: "bg-purple-500" },
   { value: "delivered", label: "Delivered", icon: Package, color: "bg-green-500" },
   { value: "completed", label: "Completed", icon: CheckCircle, color: "bg-green-700" },
@@ -75,6 +76,7 @@ const AdminDashboard = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [dispatchBooking, setDispatchBooking] = useState<Booking | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -318,6 +320,7 @@ const AdminDashboard = () => {
     pending: bookings.filter(b => b.status === 'pending').length,
     inTransit: bookings.filter(b => b.status === 'in_transit').length,
     completed: bookings.filter(b => b.status === 'completed' || b.status === 'delivered').length,
+    inStorage: bookings.filter(b => b.status === 'in_storage').length,
   };
 
   const renderOrdersCard = () => (
