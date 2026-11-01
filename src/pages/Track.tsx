@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Calendar, Briefcase, Package, Truck, CheckCircle, Clock, Loader2 } from "lucide-react";
+import { Search, Calendar, Briefcase, Package, Truck, CheckCircle, Clock, Loader2, Warehouse } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
@@ -20,6 +20,7 @@ interface Booking {
 const statusSteps = [
   { key: "pending", label: "Booking Confirmed", icon: Clock },
   { key: "paid", label: "Payment Received", icon: CheckCircle },
+  { key: "in_storage", label: "In Storage", icon: Warehouse },
   { key: "in_transit", label: "In Transit", icon: Truck },
   { key: "delivered", label: "Delivered", icon: Package },
   { key: "completed", label: "Completed", icon: CheckCircle },

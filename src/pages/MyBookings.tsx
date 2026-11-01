@@ -26,6 +26,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   pending: { label: "Pending", variant: "secondary" },
   cod_pending: { label: "COD Pending", variant: "secondary" },
   paid: { label: "Paid", variant: "default" },
+  in_storage: { label: "In Storage", variant: "default" },
   in_transit: { label: "In Transit", variant: "default" },
   delivered: { label: "Delivered", variant: "default" },
   completed: { label: "Completed", variant: "default" },

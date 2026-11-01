@@ -497,9 +497,11 @@ const AdminDashboard = () => {
                 )}
               </TabsTrigger>
               <TabsTrigger value="partners">Partners</TabsTrigger>
+              <TabsTrigger value="storage">Storage</TabsTrigger>
             </TabsList>
 
             <TabsContent value="orders">
+              <div className="mb-6"><PendingPartnerAlerts /></div>
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <Card>
@@ -620,7 +622,12 @@ const AdminDashboard = () => {
             </TabsContent>
 
             <TabsContent value="partners">
+              <div className="mb-6"><PendingPartnerAlerts /></div>
               <AdminPartners />
+            </TabsContent>
+
+            <TabsContent value="storage">
+              <AdminStorage />
             </TabsContent>
           </Tabs>
         ) : (
@@ -670,8 +677,19 @@ const AdminDashboard = () => {
             </div>
 
             {renderOrdersCard()}
+            <div className="mt-8"><PendingPartnerAlerts /></div>
             <div className="mt-8"><AdminPartners /></div>
           </>
+        )}
+
+        {dispatchBooking && (
+          <DispatchPartnerModal
+            bookingId={dispatchBooking.id}
+            bookingLabel={dispatchBooking.tracking_id || dispatchBooking.id.slice(0, 8)}
+            currentPartnerId={dispatchBooking.assigned_partner_id ?? null}
+            onClose={() => setDispatchBooking(null)}
+            onAssigned={(pid) => setBookings(prev => prev.map(b => b.id === dispatchBooking.id ? { ...b, assigned_partner_id: pid } : b))}
+          />
         )}
       </main>
     </div>
