@@ -20,12 +20,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Luggage, LogOut, Package, Clock, CheckCircle, Truck, RefreshCw, UserPlus, X, Check, FileSpreadsheet, ChevronDown, ChevronRight, Mail, Phone, MapPin, User as UserIcon, Calendar, Hash } from "lucide-react";
+import { Luggage, LogOut, Package, Clock, CheckCircle, Truck, RefreshCw, UserPlus, X, Check, FileSpreadsheet, ChevronDown, ChevronRight, Mail, Phone, MapPin, User as UserIcon, Calendar, Hash, Warehouse, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import AdminPartners from "@/components/AdminPartners";
-import AssignPartnerSelect from "@/components/AssignPartnerSelect";
+import AdminStorage from "@/components/AdminStorage";
+import PendingPartnerAlerts from "@/components/PendingPartnerAlerts";
+import DispatchPartnerModal from "@/components/DispatchPartnerModal";
 
 interface Booking {
   id: string;
@@ -58,6 +60,7 @@ interface AdminRequest {
 const statusOptions = [
   { value: "pending", label: "Pending", icon: Clock, color: "bg-yellow-500" },
   { value: "paid", label: "Paid", icon: CheckCircle, color: "bg-blue-500" },
+  { value: "in_storage", label: "In Storage", icon: Warehouse, color: "bg-amber-500" },
   { value: "in_transit", label: "In Transit", icon: Truck, color: "bg-purple-500" },
   { value: "delivered", label: "Delivered", icon: Package, color: "bg-green-500" },
   { value: "completed", label: "Completed", icon: CheckCircle, color: "bg-green-700" },
@@ -73,6 +76,7 @@ const AdminDashboard = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [dispatchBooking, setDispatchBooking] = useState<Booking | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -316,6 +320,7 @@ const AdminDashboard = () => {
     pending: bookings.filter(b => b.status === 'pending').length,
     inTransit: bookings.filter(b => b.status === 'in_transit').length,
     completed: bookings.filter(b => b.status === 'completed' || b.status === 'delivered').length,
+    inStorage: bookings.filter(b => b.status === 'in_storage').length,
   };
 
   const renderOrdersCard = () => (
@@ -398,11 +403,17 @@ const AdminDashboard = () => {
                           <TableCell colSpan={10} className="p-6">
                             <div className="mb-4 flex items-center gap-3 flex-wrap text-sm">
                               <span className="font-semibold text-foreground flex items-center gap-2"><Truck className="w-4 h-4" /> Delivery partner</span>
-                              <AssignPartnerSelect
-                                bookingId={booking.id}
-                                currentPartnerId={booking.assigned_partner_id ?? null}
-                                onChange={(pid) => setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, assigned_partner_id: pid } : b))}
-                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => { e.stopPropagation(); setDispatchBooking(booking); }}
+                              >
+                                <Send className="w-4 h-4 mr-1" />
+                                Dispatch
+                              </Button>
+                              <span className="text-xs text-muted-foreground">
+                                {booking.assigned_partner_id ? "Partner assigned — use Dispatch to change or remove." : "No partner assigned yet."}
+                              </span>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                               <div>
@@ -486,9 +497,11 @@ const AdminDashboard = () => {
                 )}
               </TabsTrigger>
               <TabsTrigger value="partners">Partners</TabsTrigger>
+              <TabsTrigger value="storage">Storage</TabsTrigger>
             </TabsList>
 
             <TabsContent value="orders">
+              <div className="mb-6"><PendingPartnerAlerts /></div>
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <Card>
@@ -609,7 +622,12 @@ const AdminDashboard = () => {
             </TabsContent>
 
             <TabsContent value="partners">
+              <div className="mb-6"><PendingPartnerAlerts /></div>
               <AdminPartners />
+            </TabsContent>
+
+            <TabsContent value="storage">
+              <AdminStorage />
             </TabsContent>
           </Tabs>
         ) : (
@@ -659,8 +677,19 @@ const AdminDashboard = () => {
             </div>
 
             {renderOrdersCard()}
+            <div className="mt-8"><PendingPartnerAlerts /></div>
             <div className="mt-8"><AdminPartners /></div>
           </>
+        )}
+
+        {dispatchBooking && (
+          <DispatchPartnerModal
+            bookingId={dispatchBooking.id}
+            bookingLabel={dispatchBooking.tracking_id || dispatchBooking.id.slice(0, 8)}
+            currentPartnerId={dispatchBooking.assigned_partner_id ?? null}
+            onClose={() => setDispatchBooking(null)}
+            onAssigned={(pid) => setBookings(prev => prev.map(b => b.id === dispatchBooking.id ? { ...b, assigned_partner_id: pid } : b))}
+          />
         )}
       </main>
     </div>
