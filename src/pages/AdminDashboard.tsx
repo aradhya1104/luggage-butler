@@ -20,12 +20,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Luggage, LogOut, Package, Clock, CheckCircle, Truck, RefreshCw, UserPlus, X, Check, FileSpreadsheet, ChevronDown, ChevronRight, Mail, Phone, MapPin, User as UserIcon, Calendar, Hash } from "lucide-react";
+import { Luggage, LogOut, Package, Clock, CheckCircle, Truck, RefreshCw, UserPlus, X, Check, FileSpreadsheet, ChevronDown, ChevronRight, Mail, Phone, MapPin, User as UserIcon, Calendar, Hash, Warehouse, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import AdminPartners from "@/components/AdminPartners";
-import AssignPartnerSelect from "@/components/AssignPartnerSelect";
+import AdminStorage from "@/components/AdminStorage";
+import PendingPartnerAlerts from "@/components/PendingPartnerAlerts";
+import DispatchPartnerModal from "@/components/DispatchPartnerModal";
 
 interface Booking {
   id: string;
