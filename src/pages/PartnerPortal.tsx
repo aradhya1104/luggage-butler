@@ -35,6 +35,8 @@ const PartnerPortal = () => {
   const [docType, setDocType] = useState("driving_licence");
   const [uploading, setUploading] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [aadhaarFile, setAadhaarFile] = useState<File | null>(null);
 
   const load = async (uid: string) => {
     const { data } = await supabase.from("delivery_partners").select("*").eq("user_id", uid).maybeSingle();
@@ -87,11 +89,43 @@ const PartnerPortal = () => {
     if (err) return toast({ title: err, variant: "destructive" });
     if (!userId) return;
     setSaving(true);
-    const { error } = partner
-      ? await supabase.from("delivery_partners").update(payload()).eq("id", partner.id)
-      : await supabase.from("delivery_partners").insert({ ...payload(), user_id: userId, partner_code: "" });
+    let error: string | null = null;
+    let newPartnerId: string | null = null;
+    if (partner) {
+      const res = await supabase.from("delivery_partners").update(payload()).eq("id", partner.id);
+      error = res.error ? res.error.message : null;
+    } else {
+      const res = await supabase
+        .from("delivery_partners")
+        .insert({ ...payload(), user_id: userId, partner_code: "" })
+        .select("id")
+        .single();
+      error = res.error ? res.error.message : null;
+      newPartnerId = res.data?.id ?? null;
+    }
+
+    // Registration uploads happen now that the partner row exists.
+    if (!error && newPartnerId) {
+      if (photoFile) {
+        const path = `${userId}/avatar-${Date.now()}.${photoFile.name.split(".").pop()}`;
+        const up = await supabase.storage.from("partner-photos").upload(path, photoFile, { upsert: true });
+        if (up.error) toast({ title: "Photo upload failed", description: up.error.message, variant: "destructive" });
+        else await supabase.from("delivery_partners").update({ photo_path: path }).eq("id", newPartnerId);
+      }
+      if (aadhaarFile) {
+        const path = `${userId}/aadhaar-${Date.now()}.${aadhaarFile.name.split(".").pop()}`;
+        const up = await supabase.storage.from("partner-documents").upload(path, aadhaarFile);
+        if (up.error) toast({ title: "Aadhaar upload failed", description: up.error.message, variant: "destructive" });
+        else {
+          const ins = await supabase.from("partner_documents").insert({ partner_id: newPartnerId, user_id: userId, doc_type: "aadhaar", file_path: path });
+          if (ins.error) toast({ title: "Aadhaar upload failed", description: ins.error.message, variant: "destructive" });
+        }
+      }
+    }
+    setPhotoFile(null);
+    setAadhaarFile(null);
     setSaving(false);
-    if (error) return toast({ title: "Could not save", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Could not save", description: error, variant: "destructive" });
     toast({ title: partner ? "Profile updated" : "Registration submitted", description: partner ? undefined : "Our team will review and activate your account." });
     load(userId);
   };
@@ -148,6 +182,29 @@ const PartnerPortal = () => {
         <div className="space-y-2"><Label>Vehicle registration number *</Label><Input value={form.vehicle_number} maxLength={20} placeholder="e.g. UP32 AB 1234" onChange={(e) => setForm({ ...form, vehicle_number: e.target.value })} /></div>
       </div>
       <div className="space-y-2"><Label>Address (private — never shown to customers)</Label><Textarea rows={2} maxLength={500} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+      {!partner && (
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Profile photo</Label>
+            <label className="flex items-center gap-2 border border-input rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-muted/50">
+              <Upload className="w-4 h-4 text-primary shrink-0" />
+              <span className="truncate">{photoFile ? photoFile.name : "Choose an image"}</span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setPhotoFile(f); e.target.value = ""; } }} />
+            </label>
+          </div>
+          <div className="space-y-2">
+            <Label>Aadhaar (for verification)</Label>
+            <label className="flex items-center gap-2 border border-input rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-muted/50">
+              <Upload className="w-4 h-4 text-primary shrink-0" />
+              <span className="truncate">{aadhaarFile ? aadhaarFile.name : "Choose image or PDF"}</span>
+              <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setAadhaarFile(f); e.target.value = ""; } }} />
+            </label>
+          </div>
+          <p className="text-xs text-muted-foreground sm:col-span-2">
+            Optional — you can also add these later from your partner dashboard. Documents stay private; only you and Luggo admins can see them.
+          </p>
+        </div>
+      )}
       <Button className="w-full" onClick={save} disabled={saving}>
         {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{partner ? "Save changes" : "Register as partner"}
       </Button>
