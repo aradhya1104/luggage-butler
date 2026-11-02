@@ -55,6 +55,12 @@ export default {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
+        admin: {
+          DEFAULT: "hsl(var(--admin-navy))",
+          soft: "hsl(var(--admin-navy-soft))",
+          foreground: "hsl(var(--admin-navy-foreground))",
+          muted: "hsl(var(--admin-navy-muted))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

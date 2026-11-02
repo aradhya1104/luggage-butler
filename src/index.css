@@ -41,6 +41,11 @@ All colors MUST be HSL.
     --success: 145 65% 42%;
     --success-foreground: 0 0% 100%;
 
+    --admin-navy: 218 47% 10%;
+    --admin-navy-soft: 218 42% 16%;
+    --admin-navy-foreground: 210 25% 94%;
+    --admin-navy-muted: 215 16% 62%;
+
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
@@ -86,6 +91,11 @@ All colors MUST be HSL.
 
     --success: 145 65% 42%;
     --success-foreground: 0 0% 100%;
+
+    --admin-navy: 218 47% 10%;
+    --admin-navy-soft: 218 42% 16%;
+    --admin-navy-foreground: 210 25% 94%;
+    --admin-navy-muted: 215 16% 62%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
