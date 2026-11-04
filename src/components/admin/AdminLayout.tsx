@@ -34,10 +34,11 @@ const Logo = () => (
 
 const NavItems = ({ onNavigate }: { onNavigate?: () => void }) => (
   <nav className="flex flex-col gap-1 px-3 mt-8">
-    {NAV.map(({ to, label, icon: Icon }) => (
+    {NAV.map(({ to, label, icon: Icon, end }) => (
       <NavLink
         key={to}
         to={to}
+        end={end}
         onClick={onNavigate}
         className={({ isActive }) =>
           `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${

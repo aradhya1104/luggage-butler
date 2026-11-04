@@ -41,6 +41,7 @@ export interface PartnerLite {
 // bookings.status values so tracking and partner flows keep working.
 export const STATUS_META: Record<string, { label: string; pill: string }> = {
   pending: { label: "Booking Created", pill: "bg-amber-100 text-amber-800" },
+  cod_pending: { label: "COD Pending", pill: "bg-slate-100 text-slate-700" },
   paid: { label: "Payment Confirmed", pill: "bg-blue-100 text-blue-700" },
   in_storage: { label: "In Storage", pill: "bg-orange-100 text-orange-700" },
   in_transit: { label: "In Transit", pill: "bg-purple-100 text-purple-700" },
