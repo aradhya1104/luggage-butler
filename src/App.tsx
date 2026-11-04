@@ -10,10 +10,14 @@ import Receipt from "./pages/Receipt";
 import Track from "./pages/Track";
 import Profile from "./pages/Profile";
 import AdminLogin from "./pages/AdminLogin";
-import AdminDashboard from "./pages/AdminDashboard";
 import MyBookings from "./pages/MyBookings";
 import NotFound from "./pages/NotFound";
 import PartnerPortal from "./pages/PartnerPortal";
+import AdminLayout from "@/components/admin/AdminLayout";
+import AdminOverview from "./pages/admin/Overview";
+import AdminBookingsPage from "./pages/admin/Bookings";
+import AdminPartnersPage from "./pages/admin/Partners";
+import AdminStoragePage from "./pages/admin/Storage";
 
 const queryClient = new QueryClient();
 
@@ -32,7 +36,12 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/my-bookings" element={<MyBookings />} />
           <Route path="/admin" element={<AdminLogin />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/dashboard" element={<AdminLayout />}>
+            <Route index element={<AdminOverview />} />
+            <Route path="bookings" element={<AdminBookingsPage />} />
+            <Route path="partners" element={<AdminPartnersPage />} />
+            <Route path="storage" element={<AdminStoragePage />} />
+          </Route>
           <Route path="/partner" element={<PartnerPortal />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
