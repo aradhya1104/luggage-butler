@@ -12,10 +12,10 @@ const AdminAuthContext = createContext<AdminAuth>({ isSuperAdmin: false, email: 
 export const useAdminAuth = () => useContext(AdminAuthContext);
 
 const NAV = [
-  { to: "/admin/dashboard", label: "Overview", icon: LayoutGrid },
-  { to: "/admin/bookings", label: "Bookings", icon: Luggage },
-  { to: "/admin/partners", label: "Delivery Partners", icon: Users },
-  { to: "/admin/storage", label: "Storage Inventory", icon: Warehouse },
+  { to: "/admin/dashboard", label: "Overview", icon: LayoutGrid, end: true },
+  { to: "/admin/dashboard/bookings", label: "Bookings", icon: Luggage, end: false },
+  { to: "/admin/dashboard/partners", label: "Delivery Partners", icon: Users, end: false },
+  { to: "/admin/dashboard/storage", label: "Storage Inventory", icon: Warehouse, end: false },
 ];
 
 const Logo = () => (
