@@ -31,11 +31,13 @@ const PartnerPortal = () => {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [docs, setDocs] = useState<Doc[]>([]);
   const [docType, setDocType] = useState("driving_licence");
   const [uploading, setUploading] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [aadhaarFile, setAadhaarFile] = useState<File | null>(null);
 
   const load = async (uid: string) => {
@@ -67,6 +69,16 @@ const PartnerPortal = () => {
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreviewUrl(null);
+      return;
+    }
+    const preview = URL.createObjectURL(photoFile);
+    setPhotoPreviewUrl(preview);
+    return () => URL.revokeObjectURL(preview);
+  }, [photoFile]);
 
   const validate = () => {
     if (!form.full_name.trim()) return "Please enter your full name";
@@ -107,10 +119,17 @@ const PartnerPortal = () => {
     // Registration uploads happen now that the partner row exists.
     if (!error && newPartnerId) {
       if (photoFile) {
-        const path = `${userId}/avatar-${Date.now()}.${photoFile.name.split(".").pop()}`;
-        const up = await supabase.storage.from("partner-photos").upload(path, photoFile, { upsert: true });
-        if (up.error) toast({ title: "Photo upload failed", description: up.error.message, variant: "destructive" });
-        else await supabase.from("delivery_partners").update({ photo_path: path }).eq("id", newPartnerId);
+        const path = `${userId}/avatar-${Date.now()}.${photoExtension(photoFile)}`;
+        const { error: uploadError } = await supabase.storage.from("partner-photos").upload(path, photoFile);
+        if (uploadError) {
+          toast({ title: "Photo upload failed", description: uploadError.message, variant: "destructive" });
+        } else {
+          const { error: profileError } = await supabase.from("delivery_partners").update({ photo_path: path }).eq("id", newPartnerId);
+          if (profileError) {
+            await supabase.storage.from("partner-photos").remove([path]);
+            toast({ title: "Photo could not be saved", description: profileError.message, variant: "destructive" });
+          }
+        }
       }
       if (aadhaarFile) {
         const path = `${userId}/aadhaar-${Date.now()}.${aadhaarFile.name.split(".").pop()}`;
@@ -138,15 +157,34 @@ const PartnerPortal = () => {
 
   const uploadPhoto = async (file: File) => {
     if (!partner || !userId) return;
-    if (!file.type.startsWith("image/")) return toast({ title: "Please choose an image", variant: "destructive" });
-    const path = `${userId}/avatar-${Date.now()}.${file.name.split(".").pop()}`;
-    const { error } = await supabase.storage.from("partner-photos").upload(path, file, { upsert: true });
-    if (error) return toast({ title: "Upload failed", description: error.message, variant: "destructive" });
-    await supabase.from("delivery_partners").update({ photo_path: path }).eq("id", partner.id);
-    if (partner.photo_path) supabase.storage.from("partner-photos").remove([partner.photo_path]);
+    if (!isSupportedPhoto(file)) {
+      toast({ title: "Choose a JPG, PNG, or WebP photo", variant: "destructive" });
+      return;
+    }
+    setPhotoUploading(true);
+    const path = `${userId}/avatar-${Date.now()}.${photoExtension(file)}`;
+    const { error: uploadError } = await supabase.storage.from("partner-photos").upload(path, file);
+    if (uploadError) {
+      setPhotoUploading(false);
+      toast({ title: "Photo upload failed", description: uploadError.message, variant: "destructive" });
+      return;
+    }
+    const { error: profileError } = await supabase.from("delivery_partners").update({ photo_path: path }).eq("id", partner.id);
+    if (profileError) {
+      await supabase.storage.from("partner-photos").remove([path]);
+      setPhotoUploading(false);
+      toast({ title: "Photo could not be saved", description: profileError.message, variant: "destructive" });
+      return;
+    }
+    if (partner.photo_path) await supabase.storage.from("partner-photos").remove([partner.photo_path]);
     setPartner({ ...partner, photo_path: path });
     setPhotoUrl(await getPhotoUrl(path));
+    setPhotoUploading(false);
+    toast({ title: "Profile photo updated" });
   };
+
+  const isSupportedPhoto = (file: File) => ["image/jpeg", "image/png", "image/webp"].includes(file.type);
+  const photoExtension = (file: File) => ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" }[file.type] ?? "jpg");
 
   const uploadDoc = async (file: File) => {
     if (!partner || !userId) return;
@@ -186,11 +224,17 @@ const PartnerPortal = () => {
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Profile photo</Label>
-            <label className="flex items-center gap-2 border border-input rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-muted/50">
-              <Upload className="w-4 h-4 text-primary shrink-0" />
-              <span className="truncate">{photoFile ? photoFile.name : "Choose an image"}</span>
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setPhotoFile(f); e.target.value = ""; } }} />
-            </label>
+            <div className="flex items-center gap-3">
+              <Avatar className="h-12 w-12 shrink-0">
+                {photoPreviewUrl && <AvatarImage src={photoPreviewUrl} alt="Selected profile photo" />}
+                <AvatarFallback><Camera className="h-4 w-4" /></AvatarFallback>
+              </Avatar>
+              <label className="flex min-w-0 flex-1 items-center gap-2 border border-input rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-muted/50">
+                <Upload className="w-4 h-4 text-primary shrink-0" />
+                <span className="truncate">{photoFile ? photoFile.name : "Choose a JPG, PNG, or WebP photo"}</span>
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (isSupportedPhoto(f)) setPhotoFile(f); else toast({ title: "Choose a JPG, PNG, or WebP photo", variant: "destructive" }); e.target.value = ""; } }} />
+              </label>
+            </div>
           </div>
           <div className="space-y-2">
             <Label>Aadhaar (for verification)</Label>
@@ -239,14 +283,19 @@ const PartnerPortal = () => {
           <>
             <Card>
               <CardContent className="p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-                <label className="relative cursor-pointer group">
+                <div className="flex flex-col items-center gap-2">
                   <Avatar className="h-24 w-24">
                     {photoUrl && <AvatarImage src={photoUrl} />}
                     <AvatarFallback className="text-2xl">{partner.full_name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <span className="absolute bottom-0 right-0 rounded-full bg-primary p-1.5 text-primary-foreground"><Camera className="h-4 w-4" /></span>
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadPhoto(e.target.files[0])} />
-                </label>
+                  <Button variant="outline" size="sm" asChild disabled={photoUploading}>
+                    <label className="cursor-pointer">
+                      {photoUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
+                      {photoUploading ? "Uploading…" : photoUrl ? "Change photo" : "Upload photo"}
+                      <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={photoUploading} onChange={(e) => { const file = e.target.files?.[0]; if (file) void uploadPhoto(file); e.target.value = ""; }} />
+                    </label>
+                  </Button>
+                </div>
                 <div className="flex-1 text-center sm:text-left space-y-2">
                   <p className="text-sm text-muted-foreground">Partner ID</p>
                   <p className="text-2xl font-mono font-bold text-foreground">{partner.partner_code}</p>

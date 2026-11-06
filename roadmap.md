@@ -1,0 +1,3 @@
+- [ ] Enable delivery partners to upload/update a profile photo and show it in admin partner details.
+- [ ] Inspect the latest user upload and address any additional request it contains.
+- [ ] Investigate and fix the booking failure shown in the newly uploaded checkout screenshot.
