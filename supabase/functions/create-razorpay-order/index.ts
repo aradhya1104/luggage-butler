@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.22.4";
+import { pickupCoordinateFields } from "../_shared/pickup-coordinates.ts";
 import { validateBookingDates } from "../_shared/booking-dates.ts";
 
 const corsHeaders = {
@@ -13,6 +14,8 @@ const GOOGLE_SCRIPT_URL = Deno.env.get('GOOGLE_SHEET_WEBHOOK_URL') ?? '';
 
 // Input validation schemas
 const createOrderSchema = z.object({
+  pickupLatitude: z.number().min(-90).max(90).optional().nullable(),
+  pickupLongitude: z.number().min(-180).max(180).optional().nullable(),
   pickupLocation: z.string().min(1, "Pickup location is required").max(500, "Location too long"),
   deliveryLocation: z.string().max(500, "Location too long").optional().nullable(),
   dropOffDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
@@ -91,7 +94,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: { Authorization: req.headers.get('Authorization') ?? '' },
         },
       }
     );
@@ -129,6 +132,10 @@ Deno.serve(async (req) => {
       }
 
       const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags, idempotencyKey, pickupTime, deliveryTime } = parseResult.data;
+
+      let coordinateFields;
+      try { coordinateFields = pickupCoordinateFields(body.pickupLatitude, body.pickupLongitude); }
+      catch { return new Response(JSON.stringify({ error: "Invalid pickup coordinates" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
 
       // Validate date logic
       const dateValidation = validateBookingDates(dropOffDate, pickupDate);
@@ -241,7 +248,8 @@ Deno.serve(async (req) => {
           .from('bookings')
           .insert({
             user_id: user.id,
-            pickup_location: pickupLocation,
+            ...coordinateFields,
+        pickup_location: pickupLocation,
             delivery_location: deliveryLocation,
             drop_off_date: dropOffDate,
             pickup_date: pickupDate,
@@ -267,7 +275,7 @@ Deno.serve(async (req) => {
             .from('bookings')
             .select('*')
             .eq('user_id', user.id)
-            .eq('idempotency_key', idempotencyKey!)
+            .eq('idempotency_key', idempotencyKey ?? '')
             .maybeSingle();
           if (concurrent) {
             const { data: concurrentPayment } = await supabaseAdmin

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ArrowLeft, MapPin, Calendar, Briefcase, CreditCard, Loader2, User, Phone, Mail, Banknote } from "lucide-react";
@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
+import LocationInput from "@/components/LocationInput";
+import { validCoordinates, type Coordinates } from "@/lib/location";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 interface UserProfile {
@@ -36,6 +38,8 @@ function getPrice(bags: number): number {
 const Booking = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [pickupCoordinates, setPickupCoordinates] = useState<Coordinates | null>(() => validCoordinates(location.state?.pickupCoordinates) ? location.state.pickupCoordinates : null);
   const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +54,7 @@ const Booking = () => {
   const paymentInFlight = useRef(false);
   const attemptKeyRef = useRef<string | null>(null);
 
-  const pickupLocation = searchParams.get("pickup") || "";
+  const [pickupLocation, setPickupLocation] = useState(searchParams.get("pickup") || "");
   const deliveryLocation = searchParams.get("delivery") || "";
   const dropOffDate = searchParams.get("dropOff") || "";
   const pickupDate = searchParams.get("pickupDate") || "";
@@ -254,6 +258,8 @@ const Booking = () => {
       const { data, error } = await supabase.functions.invoke("create-cod-booking", {
         body: {
           pickupLocation,
+          pickupLatitude: pickupCoordinates?.latitude ?? null,
+          pickupLongitude: pickupCoordinates?.longitude ?? null,
           deliveryLocation,
           dropOffDate,
           pickupDate,
@@ -317,6 +323,8 @@ const Booking = () => {
         body: {
           action: "create-order",
           pickupLocation,
+          pickupLatitude: pickupCoordinates?.latitude ?? null,
+          pickupLongitude: pickupCoordinates?.longitude ?? null,
           deliveryLocation,
           dropOffDate,
           pickupDate,
@@ -548,13 +556,7 @@ const Booking = () => {
               <CardDescription>Your luggage storage reservation</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-primary mt-0.5" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Pickup Location</p>
-                  <p className="font-medium">{pickupLocation || "Not specified"}</p>
-                </div>
-              </div>
+              <LocationInput label="Pickup Location" placeholder="Enter pickup address" value={pickupLocation} onChange={setPickupLocation} coordinates={pickupCoordinates} onCoordinatesChange={point => { setPickupCoordinates(point); attemptKeyRef.current = null; }} showCurrentLocationButton />
 
               {deliveryLocation && (
                 <div className="flex items-start gap-3">

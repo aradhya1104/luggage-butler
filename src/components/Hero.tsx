@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Calendar, ArrowRight, Shield, Clock, Truck } from "lucide-react"; // Clock used for time inputs
 import heroImage from "@/assets/hero-luggage.jpg";
 import LocationInput from "./LocationInput";
+import type { Coordinates } from "@/lib/location";
 import { useToast } from "@/hooks/use-toast";
 
 const Hero = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [pickupLocation, setPickupLocation] = useState("");
+  const [pickupCoordinates, setPickupCoordinates] = useState<Coordinates | null>(null);
   const [deliveryLocation, setDeliveryLocation] = useState("");
   const [dropOffDate, setDropOffDate] = useState("");
   const [pickupDate, setPickupDate] = useState("");
@@ -35,7 +37,7 @@ const Hero = () => {
       pickupTime,
       deliveryTime,
     });
-    navigate(`/booking?${params.toString()}`);
+    navigate(`/booking?${params.toString()}`, { state: { pickupCoordinates } });
   };
 
   const scrollToBookingForm = () => {
@@ -123,6 +125,8 @@ const Hero = () => {
                   placeholder="Enter pickup address"
                   value={pickupLocation}
                   onChange={setPickupLocation}
+                  coordinates={pickupCoordinates}
+                  onCoordinatesChange={setPickupCoordinates}
                   showCurrentLocationButton
                 />
 

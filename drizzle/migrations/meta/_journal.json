@@ -8,6 +8,13 @@
       "when": 1793581656936,
       "tag": "0000_booking_status_logs_audit_history",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794083614552,
+      "tag": "0001_add_booking_pickup_coordinates",
+      "breakpoints": true
     }
   ]
 }

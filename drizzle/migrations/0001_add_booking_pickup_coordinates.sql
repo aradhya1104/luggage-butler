@@ -1,0 +1,4 @@
+ALTER TABLE public.bookings ADD COLUMN pickup_latitude double precision, ADD COLUMN pickup_longitude double precision;
+ALTER TABLE public.bookings ADD CONSTRAINT bookings_pickup_coordinates_valid CHECK ((pickup_latitude IS NULL AND pickup_longitude IS NULL) OR (pickup_latitude IS NOT NULL AND pickup_longitude IS NOT NULL AND pickup_latitude BETWEEN -90 AND 90 AND pickup_longitude BETWEEN -180 AND 180));
+COMMENT ON COLUMN public.bookings.pickup_latitude IS 'Customer-confirmed pickup GPS latitude; protected by existing booking RLS.';
+COMMENT ON COLUMN public.bookings.pickup_longitude IS 'Customer-confirmed pickup GPS longitude; protected by existing booking RLS.';

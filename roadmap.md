@@ -4,3 +4,5 @@
 - [x] Match the partner dashboard to the uploaded reference while preserving registration, photo uploads, and real assigned jobs.
 - [x] Verify the partner dashboard on desktop and mobile.
 - [x] Send delivery partners to their dashboard automatically after signing in.
+- [x] Add key-free GPS pickup confirmation and OpenStreetMap pin adjustment.
+- [x] Save confirmed coordinates for COD and online bookings; verify GPS adjustment through COD receipt and database readback, with shared validation tests for both paths.
