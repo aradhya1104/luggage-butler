@@ -3,3 +3,4 @@
 - [x] Investigate and fix the booking failure shown in the newly uploaded checkout screenshot.
 - [x] Match the partner dashboard to the uploaded reference while preserving registration, photo uploads, and real assigned jobs.
 - [x] Verify the partner dashboard on desktop and mobile.
+- [x] Send delivery partners to their dashboard automatically after signing in.
