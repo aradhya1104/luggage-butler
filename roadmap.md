@@ -1,3 +1,5 @@
 - [x] Enable delivery partners to upload/update a profile photo and show it in admin partner details.
 - [x] Inspect the latest user upload and address any additional request it contains.
 - [x] Investigate and fix the booking failure shown in the newly uploaded checkout screenshot.
+- [ ] Match the partner dashboard to the uploaded reference while preserving registration, photo uploads, and real assigned jobs.
+- [ ] Verify the partner dashboard on desktop and mobile.
