@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.22.4";
+import { validateBookingDates } from "../_shared/booking-dates.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -59,15 +60,9 @@ Deno.serve(async (req) => {
 
     const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags, pickupTime, deliveryTime } = parsed.data;
 
-    // Date sanity
-    const today = new Date(); today.setHours(0,0,0,0);
-    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
-    if (new Date(pickupDate) < yesterday) {
-      return new Response(JSON.stringify({ error: 'Pickup date cannot be in the past' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-    if (new Date(dropOffDate) < new Date(pickupDate)) {
-      return new Response(JSON.stringify({ error: 'Drop-off date must be on or after pickup date' }),
+    const dateValidation = validateBookingDates(dropOffDate, pickupDate);
+    if (!dateValidation.valid) {
+      return new Response(JSON.stringify({ error: dateValidation.error }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 

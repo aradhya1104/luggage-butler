@@ -21,6 +21,14 @@ type Doc = Tables<"partner_documents">;
 type Job = Pick<Tables<"bookings">, "id" | "tracking_id" | "pickup_location" | "delivery_location" | "pickup_date" | "pickup_time" | "status" | "number_of_bags">;
 
 const emptyForm = { full_name: "", mobile: "", email: "", address: "", vehicle_type: "bike", vehicle_number: "" };
+const MAX_PROFILE_PHOTO_SIZE = 5 * 1024 * 1024;
+const isSupportedPhoto = (file: File) =>
+  ["image/jpeg", "image/png", "image/webp"].includes(file.type) && file.size <= MAX_PROFILE_PHOTO_SIZE;
+const photoExtension = (file: File) => {
+  if (file.type === "image/png") return "png";
+  if (file.type === "image/webp") return "webp";
+  return "jpg";
+};
 
 const PartnerPortal = () => {
   const navigate = useNavigate();
@@ -183,9 +191,6 @@ const PartnerPortal = () => {
     toast({ title: "Profile photo updated" });
   };
 
-  const isSupportedPhoto = (file: File) => ["image/jpeg", "image/png", "image/webp"].includes(file.type);
-  const photoExtension = (file: File) => ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" }[file.type] ?? "jpg");
-
   const uploadDoc = async (file: File) => {
     if (!partner || !userId) return;
     setUploading(true);
@@ -231,8 +236,8 @@ const PartnerPortal = () => {
               </Avatar>
               <label className="flex min-w-0 flex-1 items-center gap-2 border border-input rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-muted/50">
                 <Upload className="w-4 h-4 text-primary shrink-0" />
-                <span className="truncate">{photoFile ? photoFile.name : "Choose a JPG, PNG, or WebP photo"}</span>
-                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (isSupportedPhoto(f)) setPhotoFile(f); else toast({ title: "Choose a JPG, PNG, or WebP photo", variant: "destructive" }); e.target.value = ""; } }} />
+                <span className="truncate">{photoFile ? photoFile.name : "Choose a photo (up to 5 MB)"}</span>
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (isSupportedPhoto(f)) setPhotoFile(f); else toast({ title: "Choose a JPG, PNG, or WebP photo up to 5 MB", variant: "destructive" }); e.target.value = ""; } }} />
               </label>
             </div>
           </div>
@@ -285,7 +290,7 @@ const PartnerPortal = () => {
               <CardContent className="p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
                 <div className="flex flex-col items-center gap-2">
                   <Avatar className="h-24 w-24">
-                    {photoUrl && <AvatarImage src={photoUrl} />}
+                    {photoUrl && <AvatarImage src={photoUrl} alt={`${partner.full_name} profile photo`} />}
                     <AvatarFallback className="text-2xl">{partner.full_name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <Button variant="outline" size="sm" asChild disabled={photoUploading}>
