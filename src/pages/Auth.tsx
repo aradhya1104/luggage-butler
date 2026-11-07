@@ -110,7 +110,8 @@ const Auth = () => {
     setGoogleLoading(true);
     
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      // Return to this page so partner/redirect routing runs after Google sign-in.
+      redirect_uri: `${window.location.origin}/auth${explicitRedirect ? `?redirect=${encodeURIComponent(explicitRedirect)}` : ""}`,
       extraParams: {
         prompt: "select_account",
       },
@@ -147,7 +148,7 @@ const Auth = () => {
         }
       }
     } else {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/auth${explicitRedirect ? `?redirect=${encodeURIComponent(explicitRedirect)}` : ""}`;
       
       const { error } = await supabase.auth.signUp({
         email,
