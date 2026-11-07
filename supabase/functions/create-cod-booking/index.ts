@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.22.4";
+import { pickupCoordinateFields } from "../_shared/pickup-coordinates.ts";
 import { validateBookingDates } from "../_shared/booking-dates.ts";
 
 const corsHeaders = {
@@ -10,6 +11,8 @@ const corsHeaders = {
 const GOOGLE_SCRIPT_URL = Deno.env.get('GOOGLE_SHEET_WEBHOOK_URL') ?? '';
 
 const schema = z.object({
+  pickupLatitude: z.number().min(-90).max(90).optional().nullable(),
+  pickupLongitude: z.number().min(-180).max(180).optional().nullable(),
   pickupLocation: z.string().trim().min(1).max(500),
   deliveryLocation: z.string().trim().max(500).optional().nullable(),
   dropOffDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -42,7 +45,7 @@ Deno.serve(async (req) => {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } }
     );
 
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
@@ -60,6 +63,10 @@ Deno.serve(async (req) => {
 
     const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags, pickupTime, deliveryTime } = parsed.data;
 
+    let coordinateFields;
+    try { coordinateFields = pickupCoordinateFields(body.pickupLatitude, body.pickupLongitude); }
+    catch { return new Response(JSON.stringify({ error: "Invalid pickup coordinates" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
+
     const dateValidation = validateBookingDates(dropOffDate, pickupDate);
     if (!dateValidation.valid) {
       return new Response(JSON.stringify({ error: dateValidation.error }),
@@ -73,6 +80,7 @@ Deno.serve(async (req) => {
       .from('bookings')
       .insert({
         user_id: user.id,
+        ...coordinateFields,
         pickup_location: pickupLocation,
         delivery_location: deliveryLocation || null,
         drop_off_date: dropOffDate,
