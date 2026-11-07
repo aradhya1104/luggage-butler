@@ -20,9 +20,9 @@ const phoneSchema = z.string().optional().refine((val) => !val || /^\+?[0-9]{10,
 const Auth = () => {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(() => new URLSearchParams(window.location.search).get("mode") !== "signup");
-  const redirectTo = (() => {
+  const explicitRedirect = (() => {
     const r = new URLSearchParams(window.location.search).get("redirect");
-    return r && r.startsWith("/") && !r.startsWith("//") ? r : "/";
+    return r && r.startsWith("/") && !r.startsWith("//") ? r : null;
   })();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,22 +34,38 @@ const Auth = () => {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    let settled = false;
+
+    // Partners land on their own dashboard; everyone else lands on the home page
+    // unless the link that opened this page asked for a specific destination.
+    const goToDestination = async (uid: string) => {
+      if (settled) return;
+      let destination = explicitRedirect ?? "/";
+      if (!explicitRedirect) {
+        const { data } = await supabase
+          .from("delivery_partners")
+          .select("id")
+          .eq("user_id", uid)
+          .maybeSingle();
+        if (data) destination = "/partner";
+      }
+      if (settled) return;
+      settled = true;
+      navigate(destination, { replace: true });
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (session?.user) {
-          navigate(redirectTo);
-        }
+        if (session?.user) void goToDestination(session.user.id);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        navigate(redirectTo);
-      }
+      if (session?.user) void goToDestination(session.user.id);
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, redirectTo]);
+  }, [navigate, explicitRedirect]);
 
   const validateInputs = () => {
     try {
