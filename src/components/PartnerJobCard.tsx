@@ -27,7 +27,7 @@ export default function PartnerJobCard({ job }: { job: PartnerJob }) {
     <article className="rounded-lg border border-accent bg-card p-5 shadow-lg space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase text-accent"><Zap className="h-3 w-3" />Assigned job</span>
-        <span className="rounded-full bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary">{labels[job.status] ?? job.status.replaceAll("_", " ")}</span>
+        <span className="rounded-full bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary">{labels[job.status] ?? job.status.replace(/_/g, " ")}</span>
       </div>
       <div>
         <p className="font-mono text-xs text-muted-foreground break-all">Booking #{job.tracking_id ?? job.id.slice(0, 8)}</p>
