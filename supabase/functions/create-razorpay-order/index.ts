@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.22.4";
+import { validateBookingDates } from "../_shared/booking-dates.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -76,26 +77,6 @@ async function createRazorpayOrder(
 }
 
 
-// Validate dates are logical (dropOff <= pickup and both not in distant past)
-function validateDates(dropOffDate: string, pickupDate: string): { valid: boolean; error?: string } {
-  const dropOff = new Date(dropOffDate);
-  const pickup = new Date(pickupDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // Allow dates from yesterday (to handle timezone differences)
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (dropOff < yesterday) {
-    return { valid: false, error: "Drop-off date cannot be in the past" };
-  }
-  if (pickup < dropOff) {
-    return { valid: false, error: "Pickup date must be on or after drop-off date" };
-  }
-  return { valid: true };
-}
-
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -150,7 +131,7 @@ Deno.serve(async (req) => {
       const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags, idempotencyKey, pickupTime, deliveryTime } = parseResult.data;
 
       // Validate date logic
-      const dateValidation = validateDates(dropOffDate, pickupDate);
+      const dateValidation = validateBookingDates(dropOffDate, pickupDate);
       if (!dateValidation.valid) {
         return new Response(
           JSON.stringify({ error: dateValidation.error }),
