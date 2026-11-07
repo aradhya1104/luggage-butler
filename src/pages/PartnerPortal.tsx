@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
+import PartnerJobCard, { type PartnerJob } from "@/components/PartnerJobCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, FileText, Loader2, Upload } from "lucide-react";
+import { Camera, FileText, Loader2, Upload, Truck, RefreshCw, LogOut, UserRound, ShieldCheck, Package, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { DOC_TYPES, VEHICLE_TYPES, getPhotoUrl, statusVariant } from "@/lib/partners";
@@ -18,7 +18,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Partner = Tables<"delivery_partners">;
 type Doc = Tables<"partner_documents">;
-type Job = Pick<Tables<"bookings">, "id" | "tracking_id" | "pickup_location" | "delivery_location" | "pickup_date" | "pickup_time" | "status" | "number_of_bags">;
+type Job = PartnerJob;
 
 const emptyForm = { full_name: "", mobile: "", email: "", address: "", vehicle_type: "bike", vehicle_number: "" };
 const MAX_PROFILE_PHOTO_SIZE = 5 * 1024 * 1024;
@@ -47,6 +47,14 @@ const PartnerPortal = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [aadhaarFile, setAadhaarFile] = useState<File | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refresh = async () => {
+    if (!userId || refreshing) return;
+    setRefreshing(true);
+    try { await load(userId); } finally { setRefreshing(false); }
+  };
 
   const load = async (uid: string) => {
     const { data } = await supabase.from("delivery_partners").select("*").eq("user_id", uid).maybeSingle();
@@ -59,7 +67,7 @@ const PartnerPortal = () => {
       setPhotoUrl(await getPhotoUrl(data.photo_path));
       const [{ data: d }, { data: j }] = await Promise.all([
         supabase.from("partner_documents").select("*").eq("partner_id", data.id).order("created_at"),
-        supabase.from("bookings").select("id, tracking_id, pickup_location, delivery_location, pickup_date, pickup_time, status, number_of_bags")
+        supabase.from("bookings").select("id, tracking_id, pickup_location, delivery_location, pickup_date, pickup_time, drop_off_date, delivery_time, status, number_of_bags, amount")
           .eq("assigned_partner_id", data.id).order("pickup_date", { ascending: false }),
       ]);
       setDocs(d ?? []);
@@ -161,6 +169,7 @@ const PartnerPortal = () => {
     if (!partner) return;
     const { error } = await supabase.from("delivery_partners").update({ availability_status: v }).eq("id", partner.id);
     if (!error) setPartner({ ...partner, availability_status: v });
+    else toast({ title: "Could not change availability", description: error.message, variant: "destructive" });
   };
 
   const uploadPhoto = async (file: File) => {
@@ -260,11 +269,30 @@ const PartnerPortal = () => {
     </div>
   );
 
+  const today = format(new Date(), "yyyy-MM-dd");
+  const currentJobs = jobs.filter((j) => !["completed", "delivered", "cancelled"].includes(j.status));
+  const completedJobs = jobs.filter((j) => ["completed", "delivered"].includes(j.status));
+
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-      <div className="container mx-auto px-4 pt-24 pb-12 max-w-3xl space-y-6">
-        <h1 className="text-3xl font-bold text-foreground">Delivery Partner</h1>
+      <header className="bg-admin text-admin-foreground px-4 sm:px-6 py-4 shadow-md">
+        <div className="flex items-center justify-between gap-3">
+          <a href="/" className="flex items-center gap-2 text-sm font-extrabold"><span className="rounded-lg bg-accent p-2 text-accent-foreground"><Truck className="h-4 w-4" /></span>LUGGO <span className="text-accent">AGENT</span></a>
+          {userId && <div className="flex gap-1">
+            <Button variant="ghost" size="icon" title="My profile" aria-label="My profile" className="h-8 w-8 text-admin-muted hover:bg-admin-soft" onClick={() => setShowProfile(!showProfile)}><UserRound /></Button>
+            <Button variant="ghost" size="icon" title="Refresh jobs" aria-label="Refresh jobs" disabled={refreshing} className="h-8 w-8 text-admin-muted hover:bg-admin-soft" onClick={refresh}><RefreshCw className={refreshing ? "animate-spin" : ""} /></Button>
+            <Button variant="ghost" size="icon" title="Sign out" aria-label="Sign out" className="h-8 w-8 text-accent hover:bg-admin-soft" onClick={async () => { const { error } = await supabase.auth.signOut(); if (error) return toast({ title: "Could not sign out", variant: "destructive" }); setUserId(null); setPartner(null); navigate("/auth?redirect=/partner"); }}><LogOut /></Button>
+          </div>}
+        </div>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {partner && <Avatar className="h-10 w-10"><AvatarImage src={photoUrl ?? undefined} alt={partner.full_name} /><AvatarFallback className="bg-admin-soft text-admin-foreground">{partner.full_name.charAt(0)}</AvatarFallback></Avatar>}
+            <div><h1 className="flex items-center gap-2 text-lg font-bold">{partner ? `Welcome, ${partner.full_name.split(" ")[0]}` : "Delivery Partner"}{partner?.verification_status === "verified" && <ShieldCheck className="h-4 w-4 text-success" />}</h1><p className="mt-1 font-mono text-[11px] font-semibold text-accent">{partner ? `Partner ID: ${partner.partner_code}` : "Luggo partner portal"}</p></div>
+          </div>
+          {partner && <Select value={partner.availability_status} onValueChange={setAvailability} disabled={partner.account_status !== "active"}><SelectTrigger aria-label="Availability" className="h-8 w-32 rounded-full border-success/25 bg-success/10 text-success text-xs capitalize"><span className="h-2 w-2 rounded-full bg-success shrink-0" /><SelectValue /></SelectTrigger><SelectContent>{["available", "busy", "offline"].map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}</SelectContent></Select>}
+        </div>
+      </header>
+      <main className={`mx-auto px-4 py-6 space-y-5 ${!partner || showProfile ? "max-w-2xl" : "max-w-md"}`}>
 
         {!userId ? (
           <Card>
@@ -286,6 +314,19 @@ const PartnerPortal = () => {
           </Card>
         ) : (
           <>
+            {partner.account_status !== "active" && <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm text-foreground"><p className="font-semibold capitalize">Account {partner.account_status}</p><p className="mt-1 text-xs text-muted-foreground">{partner.account_status === "pending" ? "Your registration is awaiting review." : "Contact Luggo to check your account status."}</p></div>}
+            <div className="grid grid-cols-2 gap-3">
+              {[["Today's pickups", jobs.filter((j) => j.pickup_date === today && j.status !== "cancelled").length], ["Today's deliveries", jobs.filter((j) => j.drop_off_date === today && j.status !== "cancelled").length]].map(([label, value], index) => <div key={label} className="rounded-lg bg-card px-4 py-4 text-center shadow-md"><p className="text-[10px] font-bold uppercase text-muted-foreground">{label}</p><p className={`mt-1 text-2xl font-extrabold ${index === 0 ? "text-accent" : "text-foreground"}`}>{value}</p></div>)}
+            </div>
+            <section aria-label="Assigned jobs" className="space-y-4">
+              {currentJobs.length ? currentJobs.map((job) => <PartnerJobCard key={job.id} job={job} />) : <div className="rounded-lg border border-border bg-card px-6 py-10 text-center shadow-sm"><Package className="mx-auto h-9 w-9 text-accent" /><h2 className="mt-3 font-bold">No active jobs</h2><p className="mt-2 text-sm text-muted-foreground">Your assigned pickups and deliveries will appear here.</p></div>}
+            </section>
+            <section aria-label="Completed jobs" className="rounded-lg bg-card p-5 shadow-md">
+              <div className="flex items-center justify-between gap-2"><h2 className="text-sm font-bold">Completed Jobs</h2><span className="rounded-full bg-success/10 px-2 py-1 text-[10px] font-semibold text-success">{completedJobs.length} Jobs</span></div>
+              {completedJobs.length ? <ul className="mt-4 divide-y divide-border">{completedJobs.map((j) => <li key={j.id} className="flex items-start gap-2 py-3"><CheckCircle2 className="mt-0.5 h-4 w-4 text-success shrink-0" /><div className="min-w-0"><p className="text-xs font-semibold break-all">{j.tracking_id ?? "Booking"}</p><p className="mt-1 text-xs text-muted-foreground">{j.number_of_bags} bag(s) · {j.drop_off_date}</p></div></li>)}</ul> : <p className="py-8 text-center text-xs text-muted-foreground">No completed jobs yet.</p>}
+            </section>
+            <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setShowProfile(!showProfile)} aria-expanded={showProfile}><UserRound />{showProfile ? "Hide profile & documents" : "My profile & documents"}</Button>
+            {showProfile && <>
             <Card>
               <CardContent className="p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
                 <div className="flex flex-col items-center gap-2">
@@ -330,27 +371,6 @@ const PartnerPortal = () => {
             </div>
 
             <Card>
-              <CardHeader><CardTitle>Assigned jobs</CardTitle></CardHeader>
-              <CardContent>
-                {jobs.length === 0 ? <p className="text-muted-foreground text-sm">No jobs assigned yet.</p> : (
-                  <ul className="divide-y divide-border">
-                    {jobs.map((j) => (
-                      <li key={j.id} className="py-3 text-sm flex justify-between gap-3">
-                        <div>
-                          <p className="font-mono text-muted-foreground">{j.tracking_id}</p>
-                          <p className="text-foreground">{j.pickup_location}</p>
-                          {j.delivery_location && <p className="text-muted-foreground">→ {j.delivery_location}</p>}
-                          <p className="text-muted-foreground">{j.pickup_date}{j.pickup_time ? ` · ${j.pickup_time}` : ""} · {j.number_of_bags} bag(s)</p>
-                        </div>
-                        <Badge variant="outline" className="h-fit capitalize">{j.status.replace("_", " ")}</Badge>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
               <CardHeader><CardTitle>My details</CardTitle></CardHeader>
               <CardContent>{formFields}</CardContent>
             </Card>
@@ -385,9 +405,10 @@ const PartnerPortal = () => {
                 )}
               </CardContent>
             </Card>
+            </>}
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 };
