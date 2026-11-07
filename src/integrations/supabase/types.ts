@@ -91,7 +91,9 @@ export type Database = {
           idempotency_key: string | null
           number_of_bags: number
           pickup_date: string
+          pickup_latitude: number | null
           pickup_location: string
+          pickup_longitude: number | null
           pickup_time: string | null
           status: string
           tracking_id: string | null
@@ -109,7 +111,9 @@ export type Database = {
           idempotency_key?: string | null
           number_of_bags?: number
           pickup_date: string
+          pickup_latitude?: number | null
           pickup_location: string
+          pickup_longitude?: number | null
           pickup_time?: string | null
           status?: string
           tracking_id?: string | null
@@ -127,7 +131,9 @@ export type Database = {
           idempotency_key?: string | null
           number_of_bags?: number
           pickup_date?: string
+          pickup_latitude?: number | null
           pickup_location?: string
+          pickup_longitude?: number | null
           pickup_time?: string | null
           status?: string
           tracking_id?: string | null
