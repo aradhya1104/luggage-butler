@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Luggage, Loader2 } from "lucide-react";
 import { z } from "zod";
+import { rememberPostAuthRedirect } from "@/lib/postAuthRedirect";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -117,9 +118,11 @@ const Auth = ({ portal = "customer" }: AuthProps) => {
     setGoogleLoading(true);
     
     try {
+      // Google returns to the site root (reliable on phones and custom domains);
+      // the intended page is remembered and opened once the session is ready.
+      rememberPostAuthRedirect(explicitRedirect ?? "/");
       const { error } = await lovable.auth.signInWithOAuth("google", {
-      // Return to this page so partner/redirect routing runs after Google sign-in.
-      redirect_uri: `${window.location.origin}${authPath}${!isPartner && explicitRedirect ? `?redirect=${encodeURIComponent(explicitRedirect)}` : ""}`,
+      redirect_uri: window.location.origin,
       extraParams: {
         prompt: "select_account",
       },

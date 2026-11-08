@@ -13,6 +13,7 @@ import AdminLogin from "./pages/AdminLogin";
 import MyBookings from "./pages/MyBookings";
 import NotFound from "./pages/NotFound";
 import PartnerPortal from "./pages/PartnerPortal";
+import PostAuthRedirect from "@/components/PostAuthRedirect";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminOverview from "./pages/admin/Overview";
 import AdminBookingsPage from "./pages/admin/Bookings";
@@ -27,6 +28,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <PostAuthRedirect />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />

@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Luggage, Shield, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { rememberPostAuthRedirect } from "@/lib/postAuthRedirect";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
@@ -147,8 +148,9 @@ const AdminLogin = () => {
     setError(null);
     setGoogleLoading(true);
     
+    rememberPostAuthRedirect("/admin");
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/admin`,
+      redirect_uri: window.location.origin,
     });
 
     if (error) {

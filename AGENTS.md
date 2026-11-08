@@ -9,3 +9,4 @@
 - PartnerPortal subscribes to auth changes and rechecks on browser resume; defer profile requests outside auth callbacks and bound initial loading with retry so delayed mobile sessions cannot strand partners.
 - Customer GPS uses a shared coordinate helper and Leaflet picker; confirmed coordinates travel in navigation state and are validated by both checkout functions before insertion into bookings, keeping precise locations out of URL parameters and within existing booking access controls.
 - Destination search uses Photon (photon.komoot.io) via src/lib/location.ts helpers; delivery coordinates are validated server-side by the shared coordinate helper, keeping search key-free.
+- Google sign-in always uses `window.location.origin` as redirect_uri; the intended page is stored via `src/lib/postAuthRedirect.ts` and opened by the app-wide `PostAuthRedirect` after the session exists, because path-based return addresses left phone users on the login page.
