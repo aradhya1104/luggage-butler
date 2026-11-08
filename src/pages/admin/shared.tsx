@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useHandoverUpdates } from "@/hooks/useHandoverUpdates";
 
 export interface AdminBooking {
   id: string;
@@ -43,13 +44,14 @@ export const STATUS_META: Record<string, { label: string; pill: string }> = {
   pending: { label: "Booking Created", pill: "bg-amber-100 text-amber-800" },
   cod_pending: { label: "COD Pending", pill: "bg-slate-100 text-slate-700" },
   paid: { label: "Payment Confirmed", pill: "bg-blue-100 text-blue-700" },
+  picked_up: { label: "Picked Up", pill: "bg-success/10 text-success" },
   in_storage: { label: "In Storage", pill: "bg-orange-100 text-orange-700" },
   in_transit: { label: "In Transit", pill: "bg-purple-100 text-purple-700" },
   delivered: { label: "Delivered", pill: "bg-emerald-100 text-emerald-700" },
   completed: { label: "Completed", pill: "bg-green-100 text-green-700" },
 };
 
-export const STATUS_ORDER = ["pending", "paid", "in_storage", "in_transit", "delivered", "completed"];
+export const STATUS_ORDER = ["pending", "paid", "picked_up", "in_storage", "in_transit", "delivered", "completed"];
 
 export const statusMeta = (s: string) =>
   STATUS_META[s] ?? { label: s.replace(/_/g, " "), pill: "bg-muted text-muted-foreground" };
@@ -140,6 +142,7 @@ export const useAdminBookings = () => {
   useEffect(() => {
     load();
   }, [load]);
+  useHandoverUpdates(() => { void load(); });
 
   const exportToExcel = (rows: AdminBooking[]) => {
     if (rows.length === 0) {

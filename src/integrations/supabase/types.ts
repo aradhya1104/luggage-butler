@@ -47,6 +47,60 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_handovers: {
+        Row: {
+          attempts: number
+          booking_id: string
+          code: string
+          expires_at: string
+          generated_at: string
+          locked_until: string | null
+          partner_id: string
+          stage: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          attempts?: number
+          booking_id: string
+          code: string
+          expires_at: string
+          generated_at?: string
+          locked_until?: string | null
+          partner_id: string
+          stage: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          attempts?: number
+          booking_id?: string
+          code?: string
+          expires_at?: string
+          generated_at?: string
+          locked_until?: string | null
+          partner_id?: string
+          stage?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_handovers_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_handovers_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_status_logs: {
         Row: {
           booking_id: string
@@ -222,6 +276,97 @@ export type Database = {
         }
         Relationships: []
       }
+      handover_audit: {
+        Row: {
+          actor_id: string | null
+          booking_id: string
+          created_at: string
+          event: string
+          id: string
+          partner_id: string | null
+          stage: string
+        }
+        Insert: {
+          actor_id?: string | null
+          booking_id: string
+          created_at?: string
+          event: string
+          id?: string
+          partner_id?: string | null
+          stage: string
+        }
+        Update: {
+          actor_id?: string | null
+          booking_id?: string
+          created_at?: string
+          event?: string
+          id?: string
+          partner_id?: string | null
+          stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handover_audit_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      handover_notifications: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handover_notifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      handover_settings: {
+        Row: {
+          expiry_seconds: number
+          id: boolean
+          lockout_seconds: number
+          max_attempts: number
+        }
+        Insert: {
+          expiry_seconds?: number
+          id?: boolean
+          lockout_seconds?: number
+          max_attempts?: number
+        }
+        Update: {
+          expiry_seconds?: number
+          id?: boolean
+          lockout_seconds?: number
+          max_attempts?: number
+        }
+        Relationships: []
+      }
       partner_documents: {
         Row: {
           created_at: string
@@ -387,6 +532,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      booking_handover_action: {
+        Args: {
+          p_action: string
+          p_booking_id: string
+          p_code?: string
+          p_stage: string
+        }
+        Returns: Json
+      }
       get_booking_by_tracking_id: {
         Args: { p_tracking_id: string }
         Returns: {
@@ -398,6 +552,7 @@ export type Database = {
           tracking_id: string
         }[]
       }
+      get_booking_handovers: { Args: { p_booking_id: string }; Returns: Json }
       get_booking_partner: {
         Args: { p_booking_id: string }
         Returns: {
@@ -415,6 +570,10 @@ export type Database = {
           email: string
           user_id: string
         }[]
+      }
+      handover_notify: {
+        Args: { p_booking: string; p_message: string }
+        Returns: undefined
       }
       has_role: {
         Args: {

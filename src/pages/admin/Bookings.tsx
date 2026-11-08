@@ -20,6 +20,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import DispatchPartnerModal from "@/components/DispatchPartnerModal";
+import BookingHandover from "@/components/BookingHandover";
 import {
   AdminPageHeader,
   STATUS_ORDER,
@@ -63,7 +64,7 @@ const AdminBookingsPage = () => {
     const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", booking.id);
     setUpdatingId(null);
     if (error) {
-      toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
+      toast({ title: "Status not changed", description: error.message, variant: "destructive" });
       return;
     }
     toast({ title: "Status updated", description: `${shortBookingCode(booking)} → ${statusMeta(newStatus).label}` });
@@ -204,6 +205,7 @@ const AdminBookingsPage = () => {
             </div>
 
             <div className="p-6 space-y-6 text-sm">
+              <BookingHandover bookingId={detail.id} role="admin" />
               <div className="flex items-center justify-between gap-3">
                 <StatusPill status={detail.status} />
                 <Select

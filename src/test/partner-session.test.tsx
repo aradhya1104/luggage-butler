@@ -19,6 +19,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: {
 } }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock("@/components/PartnerJobCard", () => ({ default: () => null }));
+vi.mock("@/hooks/useHandoverUpdates", () => ({ useHandoverUpdates: vi.fn() }));
 
 describe("partner session recovery", () => {
   beforeEach(() => {

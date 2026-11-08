@@ -20,6 +20,7 @@ interface Booking {
 const statusSteps = [
   { key: "pending", label: "Booking Confirmed", icon: Clock },
   { key: "paid", label: "Payment Received", icon: CheckCircle },
+  { key: "picked_up", label: "Picked Up", icon: Briefcase },
   { key: "in_storage", label: "In Storage", icon: Warehouse },
   { key: "in_transit", label: "In Transit", icon: Truck },
   { key: "delivered", label: "Delivered", icon: Package },
