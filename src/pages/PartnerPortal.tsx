@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { DOC_TYPES, VEHICLE_TYPES, getPhotoUrl, statusVariant } from "@/lib/partners";
 import type { Tables } from "@/integrations/supabase/types";
+import type { Session } from "@supabase/supabase-js";
 
 type Partner = Tables<"delivery_partners">;
 type Doc = Tables<"partner_documents">;
@@ -49,6 +50,8 @@ const PartnerPortal = () => {
   const [aadhaarFile, setAadhaarFile] = useState<File | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [sessionRetry, setSessionRetry] = useState(0);
 
   const refresh = async () => {
     if (!userId || refreshing) return;
@@ -56,35 +59,113 @@ const PartnerPortal = () => {
     try { await load(userId); } finally { setRefreshing(false); }
   };
 
-  const load = async (uid: string) => {
-    const { data } = await supabase.from("delivery_partners").select("*").eq("user_id", uid).maybeSingle();
+  const load = async (uid: string, isCurrent = () => true) => {
+    const { data, error } = await supabase.from("delivery_partners").select("*").eq("user_id", uid).maybeSingle();
+    if (error) throw error;
+    if (!isCurrent()) return;
     setPartner(data);
     if (data) {
       setForm({
         full_name: data.full_name, mobile: data.mobile, email: data.email ?? "", address: data.address ?? "",
         vehicle_type: data.vehicle_type, vehicle_number: data.vehicle_number,
       });
-      setPhotoUrl(await getPhotoUrl(data.photo_path));
-      const [{ data: d }, { data: j }] = await Promise.all([
+      const photo = await getPhotoUrl(data.photo_path);
+      if (!isCurrent()) return;
+      setPhotoUrl(photo);
+      const [{ data: d, error: docError }, { data: j, error: jobError }] = await Promise.all([
         supabase.from("partner_documents").select("*").eq("partner_id", data.id).order("created_at"),
         supabase.from("bookings").select("id, tracking_id, pickup_location, delivery_location, pickup_date, pickup_time, drop_off_date, delivery_time, status, number_of_bags, amount")
           .eq("assigned_partner_id", data.id).order("pickup_date", { ascending: false }),
       ]);
+      if (docError) throw docError;
+      if (jobError) throw jobError;
+      if (!isCurrent()) return;
       setDocs(d ?? []);
       setJobs(j ?? []);
     }
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        setUserId(session.user.id);
-        setForm((f) => ({ ...f, email: session.user.email ?? "", full_name: session.user.user_metadata?.full_name ?? "" }));
-        await load(session.user.id);
-      }
+    let disposed = false;
+    let generation = 0;
+    let currentUser: string | null | undefined;
+    let deferred: ReturnType<typeof setTimeout> | undefined;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+
+    const fail = () => {
+      if (disposed) return;
+      generation += 1;
+      currentUser = undefined;
+      clearTimeout(timeout);
+      setLoadError("Could not open your partner dashboard. Check your connection and try again.");
       setLoading(false);
+    };
+    const startTimeout = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(fail, 20000);
+    };
+    const applySession = async (session: Session | null) => {
+      if (disposed || currentUser === (session?.user.id ?? null)) return;
+      currentUser = session?.user.id ?? null;
+      const request = ++generation;
+      const isCurrent = () => !disposed && generation === request;
+      setLoadError(null);
+      setLoading(true);
+      startTimeout();
+      setUserId(session?.user.id ?? null);
+      setPartner(null);
+      setDocs([]);
+      setJobs([]);
+      setPhotoUrl(null);
+      try {
+        if (session?.user) {
+          setForm({ ...emptyForm, email: session.user.email ?? "", full_name: session.user.user_metadata?.full_name ?? "" });
+          await load(session.user.id, isCurrent);
+        }
+      } catch {
+        if (isCurrent()) fail();
+      } finally {
+        if (isCurrent()) {
+          clearTimeout(timeout);
+          setLoading(false);
+        }
+      }
+    };
+    const checkSession = async () => {
+      const request = generation;
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (disposed || request !== generation) return;
+        if (error) throw error;
+        await applySession(session);
+      } catch {
+        if (!disposed && request === generation) fail();
+      }
+    };
+
+    // Defer database requests until the auth callback releases the session lock.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      clearTimeout(deferred);
+      deferred = setTimeout(() => { void applySession(session); }, 0);
     });
-  }, []);
+    const resume = () => {
+      if (document.visibilityState === "visible") void checkSession();
+    };
+    setLoading(true);
+    setLoadError(null);
+    startTimeout();
+    void checkSession();
+    window.addEventListener("focus", resume);
+    document.addEventListener("visibilitychange", resume);
+    return () => {
+      disposed = true;
+      clearTimeout(deferred);
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+      window.removeEventListener("focus", resume);
+      document.removeEventListener("visibilitychange", resume);
+    };
+  }, [sessionRetry]);
 
   useEffect(() => {
     if (!photoFile) {
@@ -216,6 +297,13 @@ const PartnerPortal = () => {
 
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  }
+  if (loadError) {
+    return <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-6 text-center">
+      <p role="alert" className="text-foreground">{loadError}</p>
+      <Button onClick={() => setSessionRetry((value) => value + 1)}>Try again</Button>
+      <Button variant="outline" onClick={() => navigate("/partner/login")}>Back to partner login</Button>
+    </div>;
   }
 
   const formFields = (

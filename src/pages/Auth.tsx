@@ -52,9 +52,14 @@ const Auth = ({ portal = "customer" }: AuthProps) => {
       navigate(destination, { replace: true });
     };
 
+    let redirectTimer: ReturnType<typeof setTimeout> | undefined;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (session?.user) void goToDestination(session.user.id);
+        if (session?.user) {
+          const uid = session.user.id;
+          clearTimeout(redirectTimer);
+          redirectTimer = setTimeout(() => { void goToDestination(uid); }, 0);
+        }
       }
     );
 
@@ -62,7 +67,11 @@ const Auth = ({ portal = "customer" }: AuthProps) => {
       if (session?.user) void goToDestination(session.user.id);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      settled = true;
+      clearTimeout(redirectTimer);
+      subscription.unsubscribe();
+    };
   }, [navigate, explicitRedirect]);
 
   const validateInputs = () => {
@@ -107,7 +116,8 @@ const Auth = ({ portal = "customer" }: AuthProps) => {
     setError(null);
     setGoogleLoading(true);
     
-    const { error } = await lovable.auth.signInWithOAuth("google", {
+    try {
+      const { error } = await lovable.auth.signInWithOAuth("google", {
       // Return to this page so partner/redirect routing runs after Google sign-in.
       redirect_uri: `${window.location.origin}${authPath}${!isPartner && explicitRedirect ? `?redirect=${encodeURIComponent(explicitRedirect)}` : ""}`,
       extraParams: {
@@ -115,8 +125,10 @@ const Auth = ({ portal = "customer" }: AuthProps) => {
       },
     } as any);
 
-    if (error) {
-      setError(error.message);
+      if (error) setError(error.message);
+    } catch {
+      setError("Google sign-in could not finish. Please try again in Chrome or Safari.");
+    } finally {
       setGoogleLoading(false);
     }
   };
