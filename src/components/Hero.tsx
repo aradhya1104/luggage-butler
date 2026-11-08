@@ -13,6 +13,7 @@ const Hero = () => {
   const [pickupLocation, setPickupLocation] = useState("");
   const [pickupCoordinates, setPickupCoordinates] = useState<Coordinates | null>(null);
   const [deliveryLocation, setDeliveryLocation] = useState("");
+  const [deliveryCoordinates, setDeliveryCoordinates] = useState<Coordinates | null>(null);
   const [dropOffDate, setDropOffDate] = useState("");
   const [pickupDate, setPickupDate] = useState("");
   const [numberOfBags, setNumberOfBags] = useState("1");
@@ -37,7 +38,7 @@ const Hero = () => {
       pickupTime,
       deliveryTime,
     });
-    navigate(`/booking?${params.toString()}`, { state: { pickupCoordinates } });
+    navigate(`/booking?${params.toString()}`, { state: { pickupCoordinates, deliveryCoordinates } });
   };
 
   const scrollToBookingForm = () => {
@@ -136,6 +137,10 @@ const Hero = () => {
                   placeholder="Where should we deliver?"
                   value={deliveryLocation}
                   onChange={setDeliveryLocation}
+                  coordinates={deliveryCoordinates}
+                  onCoordinatesChange={setDeliveryCoordinates}
+                  biasPoint={pickupCoordinates}
+                  enableSearch
                   optional
                   showCurrentLocationButton
                 />

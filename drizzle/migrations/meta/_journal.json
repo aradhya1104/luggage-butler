@@ -15,6 +15,13 @@
       "when": 1794083614552,
       "tag": "0001_add_booking_pickup_coordinates",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794148986739,
+      "tag": "0002_add_booking_delivery_coordinates",
+      "breakpoints": true
     }
   ]
 }

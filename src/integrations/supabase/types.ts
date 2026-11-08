@@ -84,7 +84,9 @@ export type Database = {
           amount: number
           assigned_partner_id: string | null
           created_at: string
+          delivery_latitude: number | null
           delivery_location: string | null
+          delivery_longitude: number | null
           delivery_time: string | null
           drop_off_date: string
           id: string
@@ -104,7 +106,9 @@ export type Database = {
           amount: number
           assigned_partner_id?: string | null
           created_at?: string
+          delivery_latitude?: number | null
           delivery_location?: string | null
+          delivery_longitude?: number | null
           delivery_time?: string | null
           drop_off_date: string
           id?: string
@@ -124,7 +128,9 @@ export type Database = {
           amount?: number
           assigned_partner_id?: string | null
           created_at?: string
+          delivery_latitude?: number | null
           delivery_location?: string | null
+          delivery_longitude?: number | null
           delivery_time?: string | null
           drop_off_date?: string
           id?: string
