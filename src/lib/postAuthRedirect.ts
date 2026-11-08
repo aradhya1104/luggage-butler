@@ -58,6 +58,24 @@ export const hasPendingPostAuthRedirect = (): boolean => {
   }
 };
 
+/** Query name that also carries the wanted page in the Google return address (phones can lose storage). */
+export const AFTER_PARAM = "after";
+
+/** Return address for Google: always the site root, with the wanted page as a backup in the query. */
+export const googleReturnUrl = (origin: string, path: string): string => {
+  const safe = safeInternalPath(path);
+  return safe && safe !== "/" ? `${origin}/?${AFTER_PARAM}=${encodeURIComponent(safe)}` : origin;
+};
+
+/** The wanted page named in the return address, if it is a safe same-site page. */
+export const afterPathFromUrl = (href: string): string | null => {
+  try {
+    return safeInternalPath(new URL(href).searchParams.get(AFTER_PARAM));
+  } catch {
+    return null;
+  }
+};
+
 /** Tokens the sign-in service appended to the return address, if any. */
 export const tokensFromUrl = (href: string): { access_token: string; refresh_token: string } | null => {
   const url = new URL(href);

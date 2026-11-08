@@ -2,8 +2,11 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  AFTER_PARAM,
+  afterPathFromUrl,
   clearPostAuthRedirect,
   hasPendingPostAuthRedirect,
+  rememberPostAuthRedirect,
   shouldOpenPostAuthRedirect,
   takePostAuthRedirect,
   tokensFromUrl,
@@ -18,6 +21,18 @@ const PostAuthRedirect = () => {
 
   useEffect(() => {
     let done = false;
+
+    // Phones sometimes lose the remembered page; the return address carries it as a backup.
+    const afterPath = shouldOpenPostAuthRedirect(window.location.pathname)
+      ? afterPathFromUrl(window.location.href)
+      : null;
+    if (afterPath) {
+      if (!hasPendingPostAuthRedirect()) rememberPostAuthRedirect(afterPath);
+      const url = new URL(window.location.href);
+      url.searchParams.delete(AFTER_PARAM);
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    }
+
     const go = () => {
       if (done) return;
       if (!shouldOpenPostAuthRedirect(window.location.pathname)) {
