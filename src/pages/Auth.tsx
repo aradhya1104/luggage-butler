@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Luggage, Loader2 } from "lucide-react";
 import { z } from "zod";
-import { rememberPostAuthRedirect } from "@/lib/postAuthRedirect";
+import { clearPostAuthRedirect, rememberPostAuthRedirect } from "@/lib/postAuthRedirect";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -50,6 +50,8 @@ const Auth = ({ portal = "customer" }: AuthProps) => {
       if (settled) return;
       const destination = explicitRedirect ?? "/";
       settled = true;
+      // This page is opening the right place itself; drop any older remembered page.
+      clearPostAuthRedirect();
       navigate(destination, { replace: true });
     };
 
@@ -128,8 +130,12 @@ const Auth = ({ portal = "customer" }: AuthProps) => {
       },
     } as any);
 
-      if (error) setError(error.message);
+      if (error) {
+        clearPostAuthRedirect();
+        setError(error.message);
+      }
     } catch {
+      clearPostAuthRedirect();
       setError("Google sign-in could not finish. Please try again in Chrome or Safari.");
     } finally {
       setGoogleLoading(false);
