@@ -74,16 +74,22 @@ const PartnerPortal = () => {
       const photo = await getPhotoUrl(data.photo_path);
       if (!isCurrent()) return;
       setPhotoUrl(photo);
-      const [{ data: d, error: docError }, { data: j, error: jobError }] = await Promise.all([
+      const [{ data: d, error: docError }, { data: j, error: jobError }, { data: contacts }] = await Promise.all([
         supabase.from("partner_documents").select("*").eq("partner_id", data.id).order("created_at"),
         supabase.from("bookings").select("id, tracking_id, pickup_location, delivery_location, pickup_date, pickup_time, drop_off_date, delivery_time, status, number_of_bags, amount")
           .eq("assigned_partner_id", data.id).order("pickup_date", { ascending: false }),
+        supabase.rpc("get_partner_job_customers"),
       ]);
       if (docError) throw docError;
       if (jobError) throw jobError;
       if (!isCurrent()) return;
       setDocs(d ?? []);
-      setJobs(j ?? []);
+      const contactMap = new Map((contacts ?? []).map((c) => [c.booking_id, c]));
+      setJobs((j ?? []).map((job) => ({
+        ...job,
+        customer_name: contactMap.get(job.id)?.full_name ?? null,
+        customer_phone: contactMap.get(job.id)?.phone ?? null,
+      })));
     }
   };
 
