@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 import BookingHandover from "@/components/BookingHandover";
 
-export type PartnerJob = Pick<Tables<"bookings">, "id" | "tracking_id" | "pickup_location" | "delivery_location" | "pickup_date" | "pickup_time" | "drop_off_date" | "delivery_time" | "status" | "number_of_bags" | "amount"> & { customer_name?: string | null; customer_phone?: string | null };
+export type PartnerJob = Pick<Tables<"bookings">, "id" | "tracking_id" | "pickup_location" | "delivery_location" | "pickup_date" | "pickup_time" | "drop_off_date" | "delivery_time" | "status" | "number_of_bags" | "amount"> & Partial<Pick<Tables<"bookings">, "pickup_latitude" | "pickup_longitude" | "delivery_latitude" | "delivery_longitude">> & { customer_name?: string | null; customer_phone?: string | null };
 
 const labels: Record<string, string> = {
   pending: "Pending", cod_pending: "Cash on delivery", paid: "Ready for pickup",

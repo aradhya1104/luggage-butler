@@ -76,7 +76,7 @@ const PartnerPortal = () => {
       setPhotoUrl(photo);
       const [{ data: d, error: docError }, { data: j, error: jobError }, { data: contacts }] = await Promise.all([
         supabase.from("partner_documents").select("*").eq("partner_id", data.id).order("created_at"),
-        supabase.from("bookings").select("id, tracking_id, pickup_location, delivery_location, pickup_date, pickup_time, drop_off_date, delivery_time, status, number_of_bags, amount")
+        supabase.from("bookings").select("id, tracking_id, pickup_location, delivery_location, pickup_date, pickup_time, drop_off_date, delivery_time, status, number_of_bags, amount, pickup_latitude, pickup_longitude, delivery_latitude, delivery_longitude")
           .eq("assigned_partner_id", data.id).order("pickup_date", { ascending: false }),
         supabase.rpc("get_partner_job_customers"),
       ]);
