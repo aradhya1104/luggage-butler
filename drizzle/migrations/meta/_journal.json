@@ -29,6 +29,13 @@
       "when": 1794154116588,
       "tag": "0003_secure_two_way_handovers",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794174989604,
+      "tag": "0004_partner_customer_contacts",
+      "breakpoints": true
     }
   ]
 }

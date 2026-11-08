@@ -564,6 +564,14 @@ export type Database = {
           vehicle_type: string
         }[]
       }
+      get_partner_job_customers: {
+        Args: never
+        Returns: {
+          booking_id: string
+          full_name: string
+          phone: string
+        }[]
+      }
       get_user_emails: {
         Args: { _user_ids: string[] }
         Returns: {
