@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Banknote, ExternalLink, Map, MapPin, Navigation, Package, Phone, User, Zap } from "lucide-react";
+import { Banknote, ExternalLink, MapPin, Navigation, Package, Phone, User, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
@@ -24,11 +23,11 @@ const mapsUrl = (address: string, lat?: number | null, lng?: number | null) =>
     ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
+const directionsUrl = (address: string, lat?: number | null, lng?: number | null) =>
+  `https://www.google.com/maps/dir/?api=1&destination=${lat != null && lng != null ? `${lat},${lng}` : encodeURIComponent(address)}`;
+
 export default function PartnerJobCard({ job }: { job: PartnerJob }) {
-  const [showMap, setShowMap] = useState(false);
   const delivery = job.status === "in_transit";
-  const destination = delivery ? job.delivery_location || job.pickup_location : job.pickup_location;
-  const directions = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
 
   return (
     <article className="rounded-lg border border-accent bg-card p-5 shadow-lg space-y-4">
@@ -71,11 +70,9 @@ export default function PartnerJobCard({ job }: { job: PartnerJob }) {
           <p className="mt-1 text-xs text-muted-foreground">{schedule(job.drop_off_date, job.delivery_time)}</p>
         </a>
       </div>
-      <Button variant="secondary" className="w-full rounded-lg" onClick={() => setShowMap(!showMap)} aria-expanded={showMap}><Map className="text-accent" />{showMap ? "Hide map" : "Show map"}</Button>
-      {showMap && <div className="overflow-hidden rounded-lg border border-border"><iframe title={`Map for ${job.tracking_id ?? "assigned job"}`} src={`https://maps.google.com/maps?q=${encodeURIComponent(destination)}&output=embed`} className="h-52 w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen /></div>}
       <div className="grid grid-cols-2 gap-2">
-        <Button asChild className="rounded-lg bg-admin text-admin-foreground hover:bg-admin-soft text-xs px-2"><a href={directions} target="_blank" rel="noopener noreferrer"><Navigation className="text-accent" />Google Maps</a></Button>
-        <Button asChild variant="accent" className="rounded-lg text-xs px-2"><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`} target="_blank" rel="noopener noreferrer"><MapPin />View location<ExternalLink className="h-3 w-3" /></a></Button>
+        <Button asChild className="rounded-lg bg-admin text-admin-foreground hover:bg-admin-soft text-xs px-2"><a href={directionsUrl(job.pickup_location, job.pickup_latitude, job.pickup_longitude)} target="_blank" rel="noopener noreferrer"><MapPin className="text-accent" />Navigate to Pickup</a></Button>
+        <Button asChild variant="accent" className="rounded-lg text-xs px-2"><a href={job.delivery_location ? directionsUrl(job.delivery_location, job.delivery_latitude, job.delivery_longitude) : directionsUrl(job.pickup_location, job.pickup_latitude, job.pickup_longitude)} target="_blank" rel="noopener noreferrer"><Navigation />Navigate to Drop-off</a></Button>
       </div>
       <BookingHandover bookingId={job.id} role="partner" />
     </article>
