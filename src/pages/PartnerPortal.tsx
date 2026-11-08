@@ -281,7 +281,7 @@ const PartnerPortal = () => {
           {userId && <div className="flex gap-1">
             <Button variant="ghost" size="icon" title="My profile" aria-label="My profile" className="h-8 w-8 text-admin-muted hover:bg-admin-soft" onClick={() => setShowProfile(!showProfile)}><UserRound /></Button>
             <Button variant="ghost" size="icon" title="Refresh jobs" aria-label="Refresh jobs" disabled={refreshing} className="h-8 w-8 text-admin-muted hover:bg-admin-soft" onClick={refresh}><RefreshCw className={refreshing ? "animate-spin" : ""} /></Button>
-            <Button variant="ghost" size="icon" title="Sign out" aria-label="Sign out" className="h-8 w-8 text-accent hover:bg-admin-soft" onClick={async () => { const { error } = await supabase.auth.signOut(); if (error) return toast({ title: "Could not sign out", variant: "destructive" }); setUserId(null); setPartner(null); navigate("/auth?redirect=/partner"); }}><LogOut /></Button>
+            <Button variant="ghost" size="icon" title="Sign out" aria-label="Sign out" className="h-8 w-8 text-accent hover:bg-admin-soft" onClick={async () => { const { error } = await supabase.auth.signOut(); if (error) return toast({ title: "Could not sign out", variant: "destructive" }); setUserId(null); setPartner(null); navigate("/partner/login"); }}><LogOut /></Button>
           </div>}
         </div>
         <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
@@ -299,8 +299,8 @@ const PartnerPortal = () => {
             <CardContent className="py-10 text-center space-y-4">
               <p className="text-muted-foreground">Sign in to register as a Luggo delivery partner or view your partner profile.</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button onClick={() => navigate("/auth?redirect=/partner")}>Sign in</Button>
-                <Button variant="outline" onClick={() => navigate("/auth?mode=signup&redirect=/partner")}>Create account</Button>
+                <Button onClick={() => navigate("/partner/login")}>Sign in</Button>
+                <Button variant="outline" onClick={() => navigate("/partner/login?mode=signup")}>Create account</Button>
               </div>
             </CardContent>
           </Card>

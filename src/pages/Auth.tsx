@@ -17,12 +17,20 @@ const phoneSchema = z.string().optional().refine((val) => !val || /^\+?[0-9]{10,
   message: "Please enter a valid phone number (10-15 digits)",
 });
 
-const Auth = () => {
+interface AuthProps {
+  /** "partner" is the separate Luggo Agent login at /partner/login; it always opens the partner dashboard. */
+  portal?: "customer" | "partner";
+}
+
+const Auth = ({ portal = "customer" }: AuthProps) => {
   const navigate = useNavigate();
+  const isPartner = portal === "partner";
+  const authPath = isPartner ? "/partner/login" : "/auth";
   const [isLogin, setIsLogin] = useState(() => new URLSearchParams(window.location.search).get("mode") !== "signup");
   const explicitRedirect = (() => {
     const r = new URLSearchParams(window.location.search).get("redirect");
-    return r && r.startsWith("/") && !r.startsWith("//") ? r : null;
+    if (isPartner) return "/partner";
+    return r && r.startsWith("/") && !r.startsWith("//") && !r.startsWith("/partner") ? r : null;
   })();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,20 +44,10 @@ const Auth = () => {
   useEffect(() => {
     let settled = false;
 
-    // Partners land on their own dashboard; everyone else lands on the home page
-    // unless the link that opened this page asked for a specific destination.
-    const goToDestination = async (uid: string) => {
+    // Customer login goes home (or to the requested page); partner login always opens the partner dashboard.
+    const goToDestination = async (_uid: string) => {
       if (settled) return;
-      let destination = explicitRedirect ?? "/";
-      if (!explicitRedirect) {
-        const { data } = await supabase
-          .from("delivery_partners")
-          .select("id")
-          .eq("user_id", uid)
-          .maybeSingle();
-        if (data) destination = "/partner";
-      }
-      if (settled) return;
+      const destination = explicitRedirect ?? "/";
       settled = true;
       navigate(destination, { replace: true });
     };
@@ -111,7 +109,7 @@ const Auth = () => {
     
     const { error } = await lovable.auth.signInWithOAuth("google", {
       // Return to this page so partner/redirect routing runs after Google sign-in.
-      redirect_uri: `${window.location.origin}/auth${explicitRedirect ? `?redirect=${encodeURIComponent(explicitRedirect)}` : ""}`,
+      redirect_uri: `${window.location.origin}${authPath}${!isPartner && explicitRedirect ? `?redirect=${encodeURIComponent(explicitRedirect)}` : ""}`,
       extraParams: {
         prompt: "select_account",
       },
@@ -148,7 +146,7 @@ const Auth = () => {
         }
       }
     } else {
-      const redirectUrl = `${window.location.origin}/auth${explicitRedirect ? `?redirect=${encodeURIComponent(explicitRedirect)}` : ""}`;
+      const redirectUrl = `${window.location.origin}${authPath}${!isPartner && explicitRedirect ? `?redirect=${encodeURIComponent(explicitRedirect)}` : ""}`;
       
       const { error } = await supabase.auth.signUp({
         email,
@@ -192,10 +190,10 @@ const Auth = () => {
         <Card className="border-border bg-card">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-foreground">
-              {isLogin ? "Welcome back" : "Create an account"}
+              {isPartner ? (isLogin ? "Luggo Agent login" : "Create partner account") : isLogin ? "Welcome back" : "Create an account"}
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              {isLogin
+              {isPartner ? "Sign in to open your delivery partner dashboard" : isLogin
                 ? "Sign in to manage your luggage bookings"
                 : "Sign up to start using Luggo services"}
             </CardDescription>
@@ -350,10 +348,10 @@ const Auth = () => {
               </a>
 
               <a
-                href="/partner"
+                href={isPartner ? "/auth" : "/partner/login"}
                 className="block text-sm text-primary hover:underline"
               >
-                Login as Delivery Partner
+                {isPartner ? "Login as Customer" : "Login as Delivery Partner"}
               </a>
             </div>
           </CardContent>

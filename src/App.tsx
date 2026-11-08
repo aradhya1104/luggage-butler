@@ -43,6 +43,7 @@ const App = () => (
             <Route path="storage" element={<AdminStoragePage />} />
           </Route>
           <Route path="/partner" element={<PartnerPortal />} />
+          <Route path="/partner/login" element={<Auth portal="partner" />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
