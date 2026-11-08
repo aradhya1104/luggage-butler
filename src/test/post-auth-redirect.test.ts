@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { rememberPostAuthRedirect, shouldOpenPostAuthRedirect, takePostAuthRedirect, tokensFromUrl } from "@/lib/postAuthRedirect";
+import { afterPathFromUrl, googleReturnUrl, rememberPostAuthRedirect, shouldOpenPostAuthRedirect, takePostAuthRedirect, tokensFromUrl } from "@/lib/postAuthRedirect";
 
 describe("post sign-in return page", () => {
   beforeEach(() => localStorage.clear());
@@ -24,6 +24,13 @@ describe("post sign-in return page", () => {
     expect(shouldOpenPostAuthRedirect("/")).toBe(true);
     expect(shouldOpenPostAuthRedirect("/partner")).toBe(false);
     expect(shouldOpenPostAuthRedirect("/partner/login")).toBe(false);
+  });
+
+  it("Google return address names the partner dashboard as a backup", () => {
+    const url = googleReturnUrl("https://luggo.co.in", "/partner");
+    expect(url).toBe("https://luggo.co.in/?after=%2Fpartner");
+    expect(afterPathFromUrl(`${url}#access_token=a`)).toBe("/partner");
+    expect(afterPathFromUrl("https://luggo.co.in/?after=%2F%2Fevil.com")).toBeNull();
   });
 
   it("reads tokens returned in the address", () => {
