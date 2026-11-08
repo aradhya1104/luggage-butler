@@ -8,3 +8,5 @@
 - [x] Save confirmed coordinates for COD and online bookings; verify GPS adjustment through COD receipt and database readback, with shared validation tests for both paths.
 - [x] Fix mobile partner sign-in session recovery and verify the dashboard with a real partner session.
 - [x] Make Google sign-in on phones return to the site root and reopen the partner/admin page afterward.
+- [ ] Implement secure opposite-dashboard pickup and delivery OTPs, expiry, lockouts, audit history, and handover status enforcement.
+- [ ] Connect customer, partner, and admin OTP controls with live updates and verify both handovers.
