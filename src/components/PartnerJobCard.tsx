@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Banknote, ExternalLink, Map, MapPin, Navigation, Package, Zap } from "lucide-react";
+import { Banknote, ExternalLink, Map, MapPin, Navigation, Package, Phone, User, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 import BookingHandover from "@/components/BookingHandover";
 
-export type PartnerJob = Pick<Tables<"bookings">, "id" | "tracking_id" | "pickup_location" | "delivery_location" | "pickup_date" | "pickup_time" | "drop_off_date" | "delivery_time" | "status" | "number_of_bags" | "amount">;
+export type PartnerJob = Pick<Tables<"bookings">, "id" | "tracking_id" | "pickup_location" | "delivery_location" | "pickup_date" | "pickup_time" | "drop_off_date" | "delivery_time" | "status" | "number_of_bags" | "amount"> & { customer_name?: string | null; customer_phone?: string | null };
 
 const labels: Record<string, string> = {
   pending: "Pending", cod_pending: "Cash on delivery", paid: "Ready for pickup",
@@ -36,6 +36,18 @@ export default function PartnerJobCard({ job }: { job: PartnerJob }) {
         <h2 className="mt-1 text-lg font-bold text-foreground">{delivery ? "Luggage delivery" : "Luggage pickup"}</h2>
         <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><Package className="h-3.5 w-3.5" />{job.number_of_bags} luggage {job.number_of_bags === 1 ? "bag" : "bags"}</p>
       </div>
+      {(job.customer_name || job.customer_phone) && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-3.5 py-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase text-accent">Customer</p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-foreground break-words"><User className="h-3.5 w-3.5 shrink-0" />{job.customer_name || "Customer"}</p>
+            {job.customer_phone && <p className="mt-0.5 text-xs text-muted-foreground">{job.customer_phone}</p>}
+          </div>
+          {job.customer_phone && (
+            <Button asChild size="sm" variant="accent" className="rounded-lg shrink-0"><a href={`tel:${job.customer_phone.replace(/[^\d+]/g, "")}`}><Phone />Call</a></Button>
+          )}
+        </div>
+      )}
       {job.status === "cod_pending" && (
         <div className="flex items-center gap-3 rounded-lg border border-warning/50 bg-warning/5 p-3">
           <span className="rounded-lg bg-warning p-2 text-warning-foreground"><Banknote className="h-4 w-4" /></span>
