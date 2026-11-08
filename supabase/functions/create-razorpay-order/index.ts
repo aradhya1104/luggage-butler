@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.22.4";
-import { pickupCoordinateFields } from "../_shared/pickup-coordinates.ts";
+import { pickupCoordinateFields, deliveryCoordinateFields } from "../_shared/pickup-coordinates.ts";
 import { validateBookingDates } from "../_shared/booking-dates.ts";
 
 const corsHeaders = {
@@ -134,8 +134,8 @@ Deno.serve(async (req) => {
       const { pickupLocation, deliveryLocation, dropOffDate, pickupDate, numberOfBags, idempotencyKey, pickupTime, deliveryTime } = parseResult.data;
 
       let coordinateFields;
-      try { coordinateFields = pickupCoordinateFields(body.pickupLatitude, body.pickupLongitude); }
-      catch { return new Response(JSON.stringify({ error: "Invalid pickup coordinates" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
+      try { coordinateFields = { ...pickupCoordinateFields(body.pickupLatitude, body.pickupLongitude), ...deliveryCoordinateFields(body.deliveryLatitude, body.deliveryLongitude) }; }
+      catch { return new Response(JSON.stringify({ error: "Invalid location coordinates" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
 
       // Validate date logic
       const dateValidation = validateBookingDates(dropOffDate, pickupDate);

@@ -39,6 +39,7 @@ const Booking = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [deliveryCoordinates] = useState<Coordinates | null>(() => validCoordinates(location.state?.deliveryCoordinates) ? location.state.deliveryCoordinates : null);
   const [pickupCoordinates, setPickupCoordinates] = useState<Coordinates | null>(() => validCoordinates(location.state?.pickupCoordinates) ? location.state.pickupCoordinates : null);
   const { toast } = useToast();
   
@@ -260,6 +261,8 @@ const Booking = () => {
           pickupLocation,
           pickupLatitude: pickupCoordinates?.latitude ?? null,
           pickupLongitude: pickupCoordinates?.longitude ?? null,
+          deliveryLatitude: deliveryLocation && deliveryCoordinates ? deliveryCoordinates.latitude : null,
+          deliveryLongitude: deliveryLocation && deliveryCoordinates ? deliveryCoordinates.longitude : null,
           deliveryLocation,
           dropOffDate,
           pickupDate,
@@ -325,6 +328,8 @@ const Booking = () => {
           pickupLocation,
           pickupLatitude: pickupCoordinates?.latitude ?? null,
           pickupLongitude: pickupCoordinates?.longitude ?? null,
+          deliveryLatitude: deliveryLocation && deliveryCoordinates ? deliveryCoordinates.latitude : null,
+          deliveryLongitude: deliveryLocation && deliveryCoordinates ? deliveryCoordinates.longitude : null,
           deliveryLocation,
           dropOffDate,
           pickupDate,
