@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 import BookingHandover from "@/components/BookingHandover";
 
-export type PartnerJob = Pick<Tables<"bookings">, "id" | "tracking_id" | "pickup_location" | "delivery_location" | "pickup_date" | "pickup_time" | "drop_off_date" | "delivery_time" | "status" | "number_of_bags" | "amount"> & { customer_name?: string | null; customer_phone?: string | null };
+export type PartnerJob = Pick<Tables<"bookings">, "id" | "tracking_id" | "pickup_location" | "delivery_location" | "pickup_date" | "pickup_time" | "drop_off_date" | "delivery_time" | "status" | "number_of_bags" | "amount"> & Partial<Pick<Tables<"bookings">, "pickup_latitude" | "pickup_longitude" | "delivery_latitude" | "delivery_longitude">> & { customer_name?: string | null; customer_phone?: string | null };
 
 const labels: Record<string, string> = {
   pending: "Pending", cod_pending: "Cash on delivery", paid: "Ready for pickup",
@@ -18,6 +18,11 @@ const schedule = (date: string, time: string | null) => {
   const value = new Date(`${date}T00:00:00`);
   return `${Number.isNaN(value.getTime()) ? date : format(value, "dd MMM yyyy")}${time ? ` at ${time.slice(0, 5)}` : ""}`;
 };
+
+const mapsUrl = (address: string, lat?: number | null, lng?: number | null) =>
+  lat != null && lng != null
+    ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
 export default function PartnerJobCard({ job }: { job: PartnerJob }) {
   const [showMap, setShowMap] = useState(false);
@@ -55,16 +60,16 @@ export default function PartnerJobCard({ job }: { job: PartnerJob }) {
         </div>
       )}
       <div className="rounded-lg bg-muted/40 px-3.5 py-3">
-        <div className="pb-3">
-          <p className="text-[10px] font-bold uppercase text-accent">Pickup address</p>
-          <p className="mt-1 text-xs font-semibold leading-relaxed text-foreground break-words">{job.pickup_location}</p>
+        <a href={mapsUrl(job.pickup_location, job.pickup_latitude, job.pickup_longitude)} target="_blank" rel="noopener noreferrer" className="block pb-3 rounded-md hover:bg-muted transition-colors" aria-label="Open pickup address in Google Maps">
+          <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-accent"><MapPin className="h-3 w-3" />Pickup address<ExternalLink className="h-3 w-3 ml-auto" /></p>
+          <p className="mt-1 text-xs font-semibold leading-relaxed text-foreground break-words underline decoration-dotted underline-offset-2">{job.pickup_location}</p>
           <p className="mt-1 text-xs text-muted-foreground">{schedule(job.pickup_date, job.pickup_time)}</p>
-        </div>
-        <div className="border-t border-border/60 pt-3">
-          <p className="text-[10px] font-bold uppercase text-foreground">Delivery address</p>
-          <p className="mt-1 text-xs font-semibold leading-relaxed text-foreground break-words">{job.delivery_location || "Return to pickup location"}</p>
+        </a>
+        <a href={job.delivery_location ? mapsUrl(job.delivery_location, job.delivery_latitude, job.delivery_longitude) : mapsUrl(job.pickup_location, job.pickup_latitude, job.pickup_longitude)} target="_blank" rel="noopener noreferrer" className="block border-t border-border/60 pt-3 rounded-md hover:bg-muted transition-colors" aria-label="Open delivery address in Google Maps">
+          <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-foreground"><MapPin className="h-3 w-3" />Delivery address<ExternalLink className="h-3 w-3 ml-auto" /></p>
+          <p className="mt-1 text-xs font-semibold leading-relaxed text-foreground break-words underline decoration-dotted underline-offset-2">{job.delivery_location || "Return to pickup location"}</p>
           <p className="mt-1 text-xs text-muted-foreground">{schedule(job.drop_off_date, job.delivery_time)}</p>
-        </div>
+        </a>
       </div>
       <Button variant="secondary" className="w-full rounded-lg" onClick={() => setShowMap(!showMap)} aria-expanded={showMap}><Map className="text-accent" />{showMap ? "Hide map" : "Show map"}</Button>
       {showMap && <div className="overflow-hidden rounded-lg border border-border"><iframe title={`Map for ${job.tracking_id ?? "assigned job"}`} src={`https://maps.google.com/maps?q=${encodeURIComponent(destination)}&output=embed`} className="h-52 w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen /></div>}
