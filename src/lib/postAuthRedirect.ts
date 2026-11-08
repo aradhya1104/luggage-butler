@@ -35,6 +35,21 @@ export const takePostAuthRedirect = (now = Date.now()): string | null => {
   }
 };
 
+export const clearPostAuthRedirect = () => {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* ignore */
+  }
+};
+
+/**
+ * Google sign-in returns to the site root, so a remembered page is only opened there.
+ * Anywhere else the user is already on a page they chose (e.g. after email sign-in on the
+ * partner login), and an old remembered page must not pull them away.
+ */
+export const shouldOpenPostAuthRedirect = (pathname: string): boolean => pathname === "/";
+
 export const hasPendingPostAuthRedirect = (): boolean => {
   try {
     return localStorage.getItem(KEY) !== null;

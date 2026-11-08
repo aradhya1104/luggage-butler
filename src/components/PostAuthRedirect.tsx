@@ -1,7 +1,13 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { hasPendingPostAuthRedirect, takePostAuthRedirect, tokensFromUrl } from "@/lib/postAuthRedirect";
+import {
+  clearPostAuthRedirect,
+  hasPendingPostAuthRedirect,
+  shouldOpenPostAuthRedirect,
+  takePostAuthRedirect,
+  tokensFromUrl,
+} from "@/lib/postAuthRedirect";
 
 /**
  * After Google sign-in returns to the site root, finish the session (if the tokens in the
@@ -14,6 +20,10 @@ const PostAuthRedirect = () => {
     let done = false;
     const go = () => {
       if (done) return;
+      if (!shouldOpenPostAuthRedirect(window.location.pathname)) {
+        clearPostAuthRedirect();
+        return;
+      }
       const path = takePostAuthRedirect();
       if (!path) return;
       done = true;
