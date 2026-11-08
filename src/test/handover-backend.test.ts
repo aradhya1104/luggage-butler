@@ -1,11 +1,13 @@
-// Run with HANDOVER_DB_TESTS=1 against the configured project database.
+// Run with HANDOVER_DB_TESTS=1 and an isolated HANDOVER_TEST_DB_URL.
 // Fixtures and all status/code changes are rolled back; no real booking is changed.
 import { describe, it, expect } from "vitest";
 import postgres from "postgres";
 
 describe.skipIf(process.env.HANDOVER_DB_TESTS !== "1")("secure handover backend", () => {
   it("enforces opposite-dashboard verification, visibility, lockout, expiry, reuse and assignment binding", async () => {
-    const db = postgres(process.env.SUPABASE_DB_URL ?? "", { ssl: "require", max: 1 });
+    const url = process.env.HANDOVER_TEST_DB_URL;
+    if (!url) throw new Error("An isolated HANDOVER_TEST_DB_URL is required");
+    const db = postgres(url, { max: 1 });
     let complete = false;
     try {
       await db.begin(async tx => {
