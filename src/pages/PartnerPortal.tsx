@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { DOC_TYPES, VEHICLE_TYPES, getPhotoUrl, statusVariant } from "@/lib/partners";
 import type { Tables } from "@/integrations/supabase/types";
 import type { Session } from "@supabase/supabase-js";
+import { useHandoverUpdates } from "@/hooks/useHandoverUpdates";
 
 type Partner = Tables<"delivery_partners">;
 type Doc = Tables<"partner_documents">;
@@ -52,6 +53,7 @@ const PartnerPortal = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sessionRetry, setSessionRetry] = useState(0);
+  useHandoverUpdates(() => { if (userId) void load(userId).catch(() => setLoadError("Could not refresh jobs. Please try again.")); });
 
   const refresh = async () => {
     if (!userId || refreshing) return;

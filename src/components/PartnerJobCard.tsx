@@ -3,12 +3,14 @@ import { Banknote, ExternalLink, Map, MapPin, Navigation, Package, Zap } from "l
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
+import BookingHandover from "@/components/BookingHandover";
 
 export type PartnerJob = Pick<Tables<"bookings">, "id" | "tracking_id" | "pickup_location" | "delivery_location" | "pickup_date" | "pickup_time" | "drop_off_date" | "delivery_time" | "status" | "number_of_bags" | "amount">;
 
 const labels: Record<string, string> = {
   pending: "Pending", cod_pending: "Cash on delivery", paid: "Ready for pickup",
   in_storage: "In storage", in_transit: "Out for delivery", delivered: "Delivered",
+  picked_up: "Picked Up",
   completed: "Completed", cancelled: "Cancelled",
 };
 
@@ -58,6 +60,7 @@ export default function PartnerJobCard({ job }: { job: PartnerJob }) {
         <Button asChild className="rounded-lg bg-admin text-admin-foreground hover:bg-admin-soft text-xs px-2"><a href={directions} target="_blank" rel="noopener noreferrer"><Navigation className="text-accent" />Google Maps</a></Button>
         <Button asChild variant="accent" className="rounded-lg text-xs px-2"><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`} target="_blank" rel="noopener noreferrer"><MapPin />View location<ExternalLink className="h-3 w-3" /></a></Button>
       </div>
+      <BookingHandover bookingId={job.id} role="partner" />
     </article>
   );
 }

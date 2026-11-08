@@ -7,6 +7,8 @@ import { ArrowLeft, Package, MapPin, Calendar, Loader2, Luggage } from "lucide-r
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import AssignedPartnerCard from "@/components/AssignedPartnerCard";
+import BookingHandover from "@/components/BookingHandover";
+import { useHandoverUpdates } from "@/hooks/useHandoverUpdates";
 
 interface Booking {
   id: string;
@@ -26,6 +28,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   pending: { label: "Pending", variant: "secondary" },
   cod_pending: { label: "COD Pending", variant: "secondary" },
   paid: { label: "Paid", variant: "default" },
+  picked_up: { label: "Picked Up", variant: "default" },
   in_storage: { label: "In Storage", variant: "default" },
   in_transit: { label: "In Transit", variant: "default" },
   delivered: { label: "Delivered", variant: "default" },
@@ -37,6 +40,13 @@ const MyBookings = () => {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const refreshBookings = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const { data } = await supabase.from("bookings").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false });
+    if (data) setBookings(data);
+  };
+  useHandoverUpdates(() => { void refreshBookings(); });
 
   useEffect(() => {
     const checkAuthAndFetch = async () => {
@@ -154,6 +164,7 @@ const MyBookings = () => {
                       )}
                     </div>
                     {booking.assigned_partner_id && <AssignedPartnerCard bookingId={booking.id} />}
+                    {booking.assigned_partner_id && <BookingHandover bookingId={booking.id} role="customer" />}
                   </CardContent>
                 </Card>
               );
