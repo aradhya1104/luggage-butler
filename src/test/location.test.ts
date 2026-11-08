@@ -28,3 +28,25 @@ describe("customer pickup coordinates", () => {
     expect(() => pickupCoordinateFields(NaN, 80)).toThrow();
   });
 });
+import { parsePhotonResults, photonSearchUrl } from "../lib/location";
+import { deliveryCoordinateFields } from "../../supabase/functions/_shared/pickup-coordinates";
+
+describe("destination search", () => {
+  it("limits search to India and biases near the customer", () => {
+    const url = new URL(photonSearchUrl("Hazratganj", { latitude: 26.85, longitude: 80.94 }));
+    expect(url.origin + url.pathname).toBe("https://photon.komoot.io/api/");
+    expect(url.searchParams.get("bbox")).toBe("68.1,6.5,97.4,35.7");
+    expect(url.searchParams.get("lat")).toBe("26.85");
+    expect(url.searchParams.get("lon")).toBe("80.94");
+  });
+  it("extracts name, locality, city, state and lat/lng", () => {
+    const [s] = parsePhotonResults({ features: [{ geometry: { coordinates: [80.94, 26.85] }, properties: { name: "Hazratganj Metro Station", locality: "Hazratganj", city: "Lucknow", state: "Uttar Pradesh" } }] });
+    expect(s.name).toBe("Hazratganj Metro Station");
+    expect(s.detail).toBe("Hazratganj, Lucknow, Uttar Pradesh");
+    expect(s.point).toEqual({ latitude: 26.85, longitude: 80.94 });
+  });
+  it("rejects invalid delivery coordinates on the server", () => {
+    expect(() => deliveryCoordinateFields(200, 80)).toThrow();
+    expect(deliveryCoordinateFields(null, null)).toEqual({ delivery_latitude: null, delivery_longitude: null });
+  });
+});
