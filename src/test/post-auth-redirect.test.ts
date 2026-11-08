@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { rememberPostAuthRedirect, takePostAuthRedirect, tokensFromUrl } from "@/lib/postAuthRedirect";
+import { rememberPostAuthRedirect, shouldOpenPostAuthRedirect, takePostAuthRedirect, tokensFromUrl } from "@/lib/postAuthRedirect";
 
 describe("post sign-in return page", () => {
   beforeEach(() => localStorage.clear());
@@ -18,6 +18,12 @@ describe("post sign-in return page", () => {
   it("never sends users to another website", () => {
     rememberPostAuthRedirect("//evil.com", 0);
     expect(takePostAuthRedirect(1)).toBeNull();
+  });
+
+  it("only opens a remembered page on the home page Google returns to", () => {
+    expect(shouldOpenPostAuthRedirect("/")).toBe(true);
+    expect(shouldOpenPostAuthRedirect("/partner")).toBe(false);
+    expect(shouldOpenPostAuthRedirect("/partner/login")).toBe(false);
   });
 
   it("reads tokens returned in the address", () => {
