@@ -1,0 +1,2 @@
+ALTER TABLE public.bookings ADD COLUMN delivery_latitude double precision, ADD COLUMN delivery_longitude double precision;
+ALTER TABLE public.bookings ADD CONSTRAINT bookings_delivery_coords_valid CHECK ((delivery_latitude IS NULL AND delivery_longitude IS NULL) OR (delivery_latitude BETWEEN -90 AND 90 AND delivery_longitude BETWEEN -180 AND 180));
