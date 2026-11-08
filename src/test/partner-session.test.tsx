@@ -31,7 +31,7 @@ describe("partner session recovery", () => {
 
   it("opens partner registration when the authenticated session arrives after the initial mobile check", async () => {
     render(<MemoryRouter><PartnerPortal /></MemoryRouter>);
-    await screen.findByRole("button", { name: "Sign in", exact: true });
+    await screen.findByRole("button", { name: /^Sign in$/ });
     act(() => mocks.listener?.("SIGNED_IN", { user: { id: "partner-user", email: "partner@example.com", user_metadata: {} } }));
     await screen.findByRole("button", { name: "Register as partner" });
     expect(mocks.maybeSingle).toHaveBeenCalledOnce();
